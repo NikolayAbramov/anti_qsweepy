@@ -1,5 +1,6 @@
 from numpy import *
 from anti_qsweepy.routines.helper_functions import *
+from anti_qsweepy.drivers.instrument_base_classes import VisaInstrument
 import time
 
 #Mercury iTC temperature controller
@@ -210,7 +211,7 @@ class Mercury_iTc(VisaInstrument):
 		Status = True
 		ans = String.split(":")[-1]
 		if ans=="INVALID" or ans=="N/A" or ans=="NOT_FOUND" or ans=="DENIED" or ans == "":
-			print "iTC: Error: "+String
+			print("iTC: Error: "+String)
 			Status = False
 		return Status
 		
@@ -222,10 +223,10 @@ class TemperatureController():
 	def temperature(self, chan):
 	
 	def ramp(self, chan, mode, rate=None):
-	'''
+	
 		iTc.SetLoopParam( chan,"SWFL", Sweep )
 		iTc.SetLoopParam( chan,"SWMD", "SWP" )
-	'''
+	
 	#mode ON OFF
 	
 	def load_zones(self, chan):

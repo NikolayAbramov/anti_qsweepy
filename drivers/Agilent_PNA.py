@@ -59,7 +59,7 @@ class NetworkAnalyzer(VisaInstrument):
 		#stop = self.freq_stop()
 		#nop = self.num_of_points()
 		#return linspace(start,stop,nop)
-		return float(self.instrument.query_binary_values( 'SENS1:X?', datatype=u'f' ))
+		return array(self.instr.query_binary_values( 'SENS1:X?', datatype=u'f' ))
 		
 	def	sweep_type(self, val = None):
 		if val is not None:

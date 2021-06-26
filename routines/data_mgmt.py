@@ -22,15 +22,15 @@ def default_save_path(root, time=True, name=None):
 	pathlib.Path(path).mkdir(parents=True, exist_ok=True) 
 	return path
 
-def extendable_2d(path, data_descr = "Complex S-parameter", column_descr = "Frequency, Hz", row_descr = "Power, dBm"):	
+def extendable_2d(path, column_coordinate, data_descr = "Complex S-parameter", column_descr = "Frequency, Hz", row_descr = "Power, dBm"):	
 	#Create HDF5 data file
 	f = tables.open_file(path+'\\data.h5', mode='w')
 	f.close()
 	f = tables.open_file(path+'\\data.h5', mode='a')
 	d_atom = tables.ComplexAtom(itemsize = 16 )
 	rc_atom = tables.Float64Atom() #coordinates dtype
-	d_array = f.create_earray(f.root, 'data', d_atom, (0, len(Fna)), "Complex S-parameter")
-	f.create_array(f.root, 'column_coordinate', Fna, "Frequency, Hz")
+	d_array = f.create_earray(f.root, 'data', d_atom, (0, len(column_coordinate)), "Complex S-parameter")
+	f.create_array(f.root, 'column_coordinate', column_coordinate, "Frequency, Hz")
 	r_array = f.create_earray(f.root, 'row_coordinate', rc_atom, (0,), "Power, dBm")
 	return f, d_array, r_array	
 

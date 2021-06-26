@@ -36,7 +36,7 @@ def WaitForStableT(T_getter, Sensor, Tolerance, HoldTime, H_getter = None, Timeo
 				RefTime = Time
 				Tref = T
 			if (Time - StartTime) >= Timeout:
-				print "iTC: Warning: iTCWaitForStableT Timeout expired"
+				print("iTC: Warning: iTCWaitForStableT Timeout expired")
 				Status = False
 				break
 			time.sleep(Interval)
