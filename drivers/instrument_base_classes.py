@@ -37,6 +37,9 @@ class VisaInstrument():
 	def idn(self):
 		return self.instr.query("*IDN?")
 		
+	def close(self):
+		self.instr.close()
+		
 #Base class for VISA instruments that use
 #Test Script Processor (TSP) inscead of normal SCPI syntax		
 class VisaInstrumentTSP(VisaInstrument):

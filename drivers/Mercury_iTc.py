@@ -1,29 +1,63 @@
 from numpy import *
 from anti_qsweepy.routines.helper_functions import *
 from anti_qsweepy.drivers.instrument_base_classes import VisaInstrument
+from anti_qsweepy.drivers.TemperatureControllerBaseClass import *
 import time
+import string
 
 #Mercury iTC temperature controller
 class PIDtable:
 	def __init__(self):
 		self.Auto = False
 		#PID table format Tstart Tstop P I D V
-		self.Table = np.array([])
+		self.Table = array([])
 
-class Mercury_iTc(VisaInstrument):
-	def __init__(self, *args):
-		VisaInstrument.__init__(self, *args)
+class TemperatureController(TemperatureControllerBaseClass, VisaInstrument):
+	def __init__(self, *args, **kwargs):
+		VisaInstrument.__init__(self, *args, **kwargs)
 		self.timeout = 10.
 		self.PIDfileDefaultPath = 'C:\\Users\\Public\\Documents\\iTC PID tables'
 		self.AutoPID = False
 		self.PIDtables = {}
 	###############################	
 	#PID tables handling	
+	
+	#################################	
+	#Temperature setting methods
+	def temperature(self, chan):
+		(T,err) = self.GetSensorSig(chan,"TEMP")
+		return T
+	
+	def setpoint(self,chan,val = None):
+		if val is not None:
+			if chan in self.PIDtables.keys():
+				if self.PIDtables[chan].Auto:
+					self.SetPIDV( chan, val )
+			self.SetLoopParam(chan,"TSET",val)
+		else:
+			val, err = self.GetLoopParam(chan,"TSET")
+		return val	
+	
+	def heater_value(self, chan, val = None):
+		if val is not None:
+			self.SetLoopParam(chan,"HSET", val)
+		else:
+			val,err = self.GetLoopParam(chan,"HSET")
+		return val
+
+	def heater_range(self,chan, val = None):
+		if val is not None:
+			self.SetHeaterParam(chan, "VLIM", val )
+		else:
+			val,err = self.GetHeaterParam(chan, "VLIM")
+		return val	
+
+	###############	
 	def SetPIDtable(self, Chan, PIDFile):
 		val,err = self.GetLoopParam( Chan, "PIDT")
 		if not(err):
 			Pt = PIDtable()
-			Pt.Table = np.loadtxt( self.PIDfileDefaultPath+'\\'+PIDFile )
+			Pt.Table = loadtxt( self.PIDfileDefaultPath+'\\'+PIDFile )
 			self.PIDtables[Chan] = Pt
 			Status = True
 		else: Status = False	
@@ -77,22 +111,6 @@ class Mercury_iTc(VisaInstrument):
 			print("iTC: No PID table for {:s} channel".format(Chan))
 			Status = False
 		return Status
-
-	#################################	
-	#Temperature setting methods
-	def setpoint(self,chan,setpoint):
-		if Chan in self.PIDtables.keys():
-			if self.PIDtables[Chan].Auto:
-				self.SetPIDV( Chan, Setpoint )
-		self.SetLoopParam(Chan,"TSET",Setpoint)
-	
-	def heater_value(self, chan):
-		(Hset,err) = self.GetLoopParam(Chan,"HSET")
-		return Hset	
-		
-	def temperature(self, chan):
-		(T,err) = self.GetSensorSig(Chan,"TEMP")
-		return T
 	
 	def SwitchHtrRange(self, Heater, Tset, HtrRangeList):
 		i_stop = len(HtrRangeList)-1
@@ -109,7 +127,7 @@ class Mercury_iTc(VisaInstrument):
 	
 	def GetSensorSig(self, Sens, Param ):
 		#Param = VOLT,CURR,POWR,RES,TEMP,SLOP
-		String = self.ask("READ:DEV:"+Sens+":TEMP:SIG:"+Param)
+		String = self.instr.query("READ:DEV:"+Sens+":TEMP:SIG:"+Param)
 		if self.ErrChk(String):
 			err = False
 			val = self.ExtractAns(String, True)
@@ -119,7 +137,7 @@ class Mercury_iTc(VisaInstrument):
 		return val,err	
 	#Get heater power
 	def GetP(self, Heater):
-		String = self.ask("READ:DEV:"+Heater+":HTR:SIG:POWR")
+		String = self.instr.query("READ:DEV:"+Heater+":HTR:SIG:POWR")
 		if self.ErrChk(String):
 			err = False
 			P = self.ExtractAns(String, True)
@@ -136,12 +154,12 @@ class Mercury_iTc(VisaInstrument):
 		else: 
 			ValStr = "{:f}".format(Value)
 		
-		ans = self.ask( "SET:DEV:"+Heater+":HTR:"+Param+":"+ValStr )
+		ans = self.instr.query( "SET:DEV:"+Heater+":HTR:"+Param+":"+ValStr )
 		return self.ErrChk(ans)
 
 	def GetHeaterParam(self, Heater, Param):
 		#Param = NICK,VLIM,RES,PMAX
-		ans = self.ask( "READ:DEV:"+Heater+":HTR:"+Param )
+		ans = self.instr.query( "READ:DEV:"+Heater+":HTR:"+Param )
 		if Param in ["NICK"]:
 			if self.ErrChk(ans): 
 				err = False
@@ -158,12 +176,12 @@ class Mercury_iTc(VisaInstrument):
 	
 	def SetHeaterSig(self, Heater, Sig, Value):
 	#Sig = VOLT,CURR,POWR
-		ans = self.ask( "SET:DEV:"+Heater+":HTR:SIG:"+Sig)
+		ans = self.instr.query( "SET:DEV:"+Heater+":HTR:SIG:"+Sig)
 		return not( self.ErrChk(ans) )
 	
 	def GetLoopParam(self, Loop, Param):
 		#Param = HTR,AUX,ENAB,HSET,TSET,PIDT,PSET,ISET,DSET,SWFL,SWMD
-		ans = self.ask( "READ:DEV:"+Loop+":TEMP:LOOP:"+Param )
+		ans = self.instr.query( "READ:DEV:"+Loop+":TEMP:LOOP:"+Param )
 		if Param in ["HTR", "ENAB","PIDT","SWMD"]:
 			if self.ErrChk(ans): 
 				err = False
@@ -187,7 +205,7 @@ class Mercury_iTc(VisaInstrument):
 			ValStr = Value
 		else: 
 			ValStr = "{:f}".format(Value)
-		ans = self.ask( "SET:DEV:"+Loop+":TEMP:LOOP:"+Param+":"+ValStr )	
+		ans = self.instr.query( "SET:DEV:"+Loop+":TEMP:LOOP:"+Param+":"+ValStr )	
 		return self.ErrChk(ans)
 	
 	def shutdown(self, Sensor):
@@ -200,8 +218,8 @@ class Mercury_iTc(VisaInstrument):
 		self.SetLoopParam( Loop,"SWFL", Sweep )
 		self.SetLoopParam( Loop,"SWMD", "SWP" )
 	
-	def ExtractAns(self, String, IsNumber):
-		list = String.split(':')
+	def ExtractAns(self, str, IsNumber):
+		list = str.split(':')
 		if IsNumber == True:
 			val = float( list[-1].strip(string.ascii_uppercase) )
 			return val
@@ -213,27 +231,4 @@ class Mercury_iTc(VisaInstrument):
 		if ans=="INVALID" or ans=="N/A" or ans=="NOT_FOUND" or ans=="DENIED" or ans == "":
 			print("iTC: Error: "+String)
 			Status = False
-		return Status
-		
-'''	
-class TemperatureController():
-	
-	def setp(self,chan, val = None):
-	
-	def temperature(self, chan):
-	
-	def ramp(self, chan, mode, rate=None):
-	
-		iTc.SetLoopParam( chan,"SWFL", Sweep )
-		iTc.SetLoopParam( chan,"SWMD", "SWP" )
-	
-	#mode ON OFF
-	
-	def load_zones(self, chan):
-	
-	def heater_range(self, chan, val = None):
-
-	def heater_value(self, chan, val = None):
-	
-	def heater_mode(self, chan, mode):
-'''	
+		return Status	
