@@ -7,7 +7,7 @@ class CurrentSource(VisaInstrumentTSP):
 		VisaInstrument.__init__(self, *args)
 		self.instr.write('smua.source.func = smua.OUTPUT_DCAMPS')
 		
-	def current(self, val = None):
+	def setpoint(self, val = None):
 		return float(self.write_or_query("smua.source.leveli", val, "{:e}"))
 	
 	def output(self, val = None):
