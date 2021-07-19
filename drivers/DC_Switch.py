@@ -20,6 +20,9 @@ class DC_Switch(VisaInstrument):
 			self.instr.query(sw_list)
 		else:
 			val = [ int(str) for str in self.instr.query('STAT ?').split(',')]
-		return val	
+		return val
+			
+	def set(self, chan, state):
+		return self.instr.query( "CHAN{:d} {:s}".format(chan, state))
 					
 				
