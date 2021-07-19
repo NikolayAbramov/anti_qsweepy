@@ -8,7 +8,8 @@ class SMU(VisaInstrument):
 		self.data_ind = 0
 		self.measurement_type = "VOLT"
 		self.source_type = self.source()
-		self.instr.write("AVER:TCON:REP")
+		self.instr.write("AVER:TCON REP")
+		self.instr.write("AVER ON")
 	
 	def four_wire(self, val = None):
 		#On - 4-wire, Off - 2-wire
@@ -18,7 +19,7 @@ class SMU(VisaInstrument):
 		#current, voltage
 		if val is not None:
 			val = val.upper()
-			if val not in ['CURRENT', 'VOLTAGE']:
+			if val not in ['CURRENT', 'VOLTAGE', 'CURR', 'VOLT']:
 				raise ValueError("Source must be Current or Voltage!")
 		val = self.write_or_query('SOUR:FUNC', val, '{:s}')
 		if val[-1] == '\n':
@@ -48,13 +49,13 @@ class SMU(VisaInstrument):
 	def source_range(self, val = None):
 		return float( self.write_or_query('SOUR:'+self.source_type+':RANG', val, "{:e}") )
 		
-	def measurement_range(self, val = None):
+	def meter_range(self, val = None):
 		return float( self.write_or_query(self.measurement_type+':RANG', val, "{:e}") )	
 		
 	def source_autorange(self, val=None):
 		return int(self.write_or_query('SOUR:'+self.source_type+':RANG:AUTO', self.parse_on_off_val(val), "{:s}"))
 		
-	def measurement_autorange(self, val=None):
+	def meter_autorange(self, val=None):
 		return int(self.write_or_query(self.measurement_type+':RANG:AUTO', self.parse_on_off_val(val), "{:s}"))	
 		
 	def aperture(self, val = None):
@@ -69,7 +70,7 @@ class SMU(VisaInstrument):
 class CurrentSource(VisaInstrument):
 	def __init__(self, *args, **kwargs):
 		VisaInstrument.__init__(self, *args, **kwargs)
-		self.instr.write('SOUR:FUNC:CURR')
+		self.instr.write('SOUR:FUNC CURR')
 	
 	def setpoint(self, val = None):
 		return float( self.write_or_query('SOUR:CURR', val, "{:e}") )

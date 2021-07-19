@@ -7,7 +7,7 @@ class Voltmeter(VisaInstrument):
 		self.instr.write("CONF:VOLT")
 		self.instr.write("SENS:CHAN 1")
 		self.instr.write( "SENS:VOLT:DFIL:TCON REP" )
-		self.instr.write( "SENS:VOLT:DFIL:STAT ON" )
+		self.instr.write( "SENS:VOLT:DFIL ON" )
 		
 	def read_data(self):
 		return float(self.instr.query("INIT;FETC?"))
