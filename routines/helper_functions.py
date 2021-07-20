@@ -56,12 +56,17 @@ def uniform_segment_table(Fstop,Npoints,Segments):
 	Fstep = (Fstop-Fstart)/(float(Npoints)-1)
 	ToFgrid = lambda x:  Fstart + round((x - Fstart)/Fstep)*Fstep
 	SegTable = []
+	end = False
 	for i,seg in enumerate(Segments):
 		SegStart = ToFgrid(seg["start"])
 		if i < (len(Segments)-1):
 			SegStop = ToFgrid(Segments[i+1]["start"])-Fstep
+			if SegStop >= Fstop:
+				SegStop = Fstop
+				end = True
 		else:
 			SegStop = Fstop
 		SegPoints = int(round((SegStop-SegStart)/Fstep)+1 )
-		SegTable+={'start':SegStart, 'stop':SegStop, 'points':SegPoints, 'power':seg['power'],'bandwidth':seg['bandwidth']}
+		SegTable+=[{'start':SegStart, 'stop':SegStop, 'points':SegPoints, 'power':seg['power'],'bandwidth':seg['bandwidth']}]
+		if end: break
 	return SegTable	

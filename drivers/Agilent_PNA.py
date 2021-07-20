@@ -88,7 +88,7 @@ class NetworkAnalyzer(VisaInstrument):
 			self.instr.write("SENS:SEGM{:d}:FREQ:START {:f}".format(n,seg['start']) )
 			self.instr.write("SENS:SEGM{:d}:FREQ:STOP {:f}".format(n,seg['stop']) )
 			self.instr.write("SENS:SEGM{:d}:SWE:POIN {:d}".format(n,seg['points']) )
-			self.instr.write("SENS:SEGM ON")
+			self.instr.write("SENS:SEGM{:d} ON".format(n))
 		#self.instr.write("SENS1:SEGM:LIST SSTOP,"+SegTable)
 		
 		
