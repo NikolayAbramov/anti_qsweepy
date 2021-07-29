@@ -4,6 +4,7 @@ from anti_qsweepy.drivers.instrument_base_classes import VisaInstrument
 class Voltmeter(VisaInstrument):
 	def __init__(self, *args):
 		VisaInstrument.__init__(self, *args)
+		self.instr.write("*CLS")
 		self.instr.write("CONF:VOLT")
 		self.instr.write("SENS:CHAN 1")
 		self.instr.write( "SENS:VOLT:DFIL:TCON REP" )

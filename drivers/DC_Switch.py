@@ -1,8 +1,8 @@
 from anti_qsweepy.drivers.instrument_base_classes import VisaInstrument
 
 class DC_Switch(VisaInstrument):
-	def __init__(self, *args):
-		VisaInstrument.__init__(self, *args)
+	def __init__(self, *args, **kwargs):
+		VisaInstrument.__init__(self, *args, **kwargs)
 		self._positions = 12
 		
 	def state(self,val=None):
@@ -17,12 +17,13 @@ class DC_Switch(VisaInstrument):
 					sw_list += '0'
 				if i+1 < len(val):
 					sw_list += ','
-			self.instr.query(sw_list)
+			self.instr.query(sw_list+'\n')
 		else:
-			val = [ int(str) for str in self.instr.query('STAT ?').split(',')]
+			val = [ int(str) for str in self.instr.query('STAT?\n').split(',')]
 		return val
 			
 	def set(self, chan, state):
-		return self.instr.query( "CHAN{:d} {:s}".format(chan, state))
+		print("CHAN{:d} {:s}\n".format(int(chan), state))
+		return self.instr.query( "CHAN{:d} {:s}\n".format(int(chan), state))
 					
 				
