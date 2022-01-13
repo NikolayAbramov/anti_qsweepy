@@ -9,6 +9,7 @@ class NetworkAnalyzer(VisaInstrument):
 		VisaInstrument.__init__(self, *args)
 		self.instr.write("CALC:PAR:MNUM 1")
 		self.instr.write('FORM REAL,32; FORM:BORD SWAP;')
+		self.instr.write('SENS:AVER:MODE POIN')
 	
 	def soft_trig_arm(self):
 		self.instr.write("TRIG:SOUR MAN")
@@ -36,17 +37,29 @@ class NetworkAnalyzer(VisaInstrument):
 	def bandwidth(self, val = None):
 		return int(self.write_or_query("SENS1:BAND", val, "{:f}"))
 		
-	def freq_start(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:START", val, "{:e}"))
-		
-	def freq_stop(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:STOP", val, "{:e}"))
-		
-	def freq_center(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:CENT", val, "{:e}"))
-		
-	def freq_span(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:SPAN", val, "{:e}"))	
+	def freq_start_stop(self, val = None):
+		if val is not None:
+			self.instr.write("SENS1:FREQ:START {:e}".format(val[0]))
+			self.instr.write("SENS1:FREQ:STOP {:e}".format(val[1]))
+		else:
+			val = [0,0]
+			val[0] = float(self.instr.query("SENS1:FREQ:START?"))
+			val[1] = float(self.instr.query("SENS1:FREQ:STOP?"))
+		return val	
+
+	def freq_center_span(self, val=None):
+		if val is not None:
+			self.instr.write("SENS1:FREQ:CENT {:e}".format(val[0]))
+			self.instr.write("SENS1:FREQ:SPAN {:e}".format(val[1]))
+		else:
+			val = [0,0]
+			val[0] = float(self.instr.query("SENS1:FREQ:CENT?"))
+			val[1] = float(self.instr.query("SENS1:FREQ:SPAN?"))
+		return val
+
+	def freq_cw(self, val=None):
+		#TODO
+		return val
 		
 	def num_of_points(self, val=None):
 		return int(self.write_or_query("SENS1:SWE:POIN", val, "{:d}"))
@@ -55,10 +68,6 @@ class NetworkAnalyzer(VisaInstrument):
 		return(self.write_or_query( 'OUTP', self.parse_on_off_val(val), "{:s}" ) )
 		
 	def freq_points(self):
-		#start = self.freq_start()
-		#stop = self.freq_stop()
-		#nop = self.num_of_points()
-		#return linspace(start,stop,nop)
 		return array(self.instr.query_binary_values( 'SENS1:X?', datatype=u'f' ))
 		
 	def	sweep_type(self, val = None):
@@ -90,5 +99,20 @@ class NetworkAnalyzer(VisaInstrument):
 			self.instr.write("SENS:SEGM{:d}:SWE:POIN {:d}".format(n,seg['points']) )
 			self.instr.write("SENS:SEGM{:d} ON".format(n))
 		#self.instr.write("SENS1:SEGM:LIST SSTOP,"+SegTable)
+		
+	def averaging(self, val = None):
+		#TODO insrt proper commands (these are from ZNB20)
+		if val is not None:
+			if val >1:
+				self.instr.write('SENS:AVER:STAT ON')
+				self.instr.write('SENS:AVER:COUN {:d}'.format(val))
+			else:
+				self.instr.write('SENS:AVER:STAT OFF')
+		else:
+			if int(self.instr.query('SENS:AVER:STAT?')):
+				val = int(self.instr.query('SENS:AVER:COUN?'))
+			else:
+				val = 0
+		return val	
 		
 		

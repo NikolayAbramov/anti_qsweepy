@@ -1,6 +1,7 @@
 import tables
 from numpy import *
 from matplotlib.pyplot import *
+from scipy.signal import *
 
 #Open HDF5 data file
 f = tables.open_file('data.h5', mode='r')
@@ -35,7 +36,9 @@ colorbar()
 
 subplot(2,3,5)
 title("delay, ns")
-pcolormesh( c_coord, r_cord, -diff(uPh)/((c_coord[1]-c_coord[0])*2.*pi) )
+uPh_filt = savgol_filter(uPh, 51,3)
+pcolormesh( c_coord, r_cord, -diff(uPh_filt)/((c_coord[1]-c_coord[0])*2.*pi) )
+#clim((0.5e-7,0.6e-7))
 colorbar()
 
 show()

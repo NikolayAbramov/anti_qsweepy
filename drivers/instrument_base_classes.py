@@ -6,8 +6,9 @@ class VisaInstrument():
 		self.instr = visa.ResourceManager().open_resource(address)
 		self.always_query = False
 		if term_chars is not None:
+			self.instr.write_termination = term_chars
 			self.instr.read_termination = term_chars
-			self.instr.weite_termination = term_chars
+			
 	
 	#Uneversal parameter access. If no val specified it will query and return or write instead
 	def write_or_query(self, message, val=None, fmt_str = "{:d}"):

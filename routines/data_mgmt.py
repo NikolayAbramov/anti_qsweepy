@@ -34,11 +34,21 @@ def extendable_2d(path, column_coordinate, data_descr = "Complex S-parameter", c
 	r_array = f.create_earray(f.root, 'row_coordinate', rc_atom, (0,), "Power, dBm")
 	return f, d_array, r_array	
 
-def spawn_plotting_script(dest,name):
+def data_file(path):	
+	#Create HDF5 data file
+	f = tables.open_file(path+'\\data.h5', mode='w')
+	f.close()
+	f = tables.open_file(path+'\\data.h5', mode='a')
+	return f
+
+def spawn_plotting_script(dest,name, py = True):
 	module_dir = os.path.dirname(os.path.abspath(__file__))
 	source_dir = os.path.split(module_dir)[0]+"\\plotting_scripts"
-	shutil.copyfile(source_dir+"\\"+name+'.py', dest+"\\"+name+'.py')
-	shutil.copyfile(source_dir+"\\plot.bat", dest+"\\plot.bat")
-	bat = open(dest+"\\plot.bat", 'a')
-	bat.write(' '+name+'.py')
-	bat.close()
+	if py:
+		shutil.copyfile(source_dir+"\\"+name+'.py', dest+"\\"+name+'.py')
+		shutil.copyfile(source_dir+"\\plot.bat", dest+"\\plot.bat")
+		bat = open(dest+"\\plot.bat", 'a')
+		bat.write(' '+name+'.py')
+		bat.close()
+	else:
+		shutil.copyfile(source_dir+"\\"+name, dest+"\\"+name)

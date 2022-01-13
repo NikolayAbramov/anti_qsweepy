@@ -53,29 +53,62 @@ class NetworkAnalyzer(VisaInstrument):
 	def bandwidth(self, val = None):
 		return int(self.write_or_query("SENS1:BAND", val, "{:f}"))
 		
-	def freq_start(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:START", val, "{:e}"))
+	def freq_start_stop(self, val = None):
+		if val is not None:
+			self.instr.write("SENS1:FREQ:START {:e}".format(val[0]))
+			self.instr.write("SENS1:FREQ:STOP {:e}".format(val[1]))
+		else:
+			val = [0,0]
+			val[0] = self.instr.query("SENS1:FREQ:START?")
+			val[1] = self.instr.query("SENS1:FREQ:STOP?")
+		return val	
+
+	def freq_center_span(self, val=None):
+		if val is not None:
+			self.instr.write("SENS1:FREQ:CENT {:e}".format(val[0]))
+			self.instr.write("SENS1:FREQ:SPAN {:e}".format(val[1]))
+		else:
+			val = [0,0]
+			val[0] = float(self.instr.query("SENS1:FREQ:CENT?"))
+			val[1] = float(self.instr.query("SENS1:FREQ:SPAN?"))
+		return val
 		
-	def freq_stop(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:STOP", val, "{:e}"))
-		
-	def freq_center(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:CENT", val, "{:e}"))
-		
-	def freq_span(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:SPAN", val, "{:e}"))
+	def freq_cw(self, val=None):
+		return float(self.write_or_query('SENS1:FREQ:CW', val, "{:e}"))
 
 	def freq_points(self):
 		return array(self.instr.query_binary_values( 'CALC:DATA:STIM?', datatype=u'f' ))
+		
+	def	sweep_type(self, val = None):
+		if val is not None:
+			#Actually, POINT is you usual expected CW mode
+			#CW here is wierd "time" sweep and cause software trigger failure
+			val = val.upper()
+			if val == "CW": val = "POINT"
+			if val not in ["LIN", "LOG", "POW", "CW", "POINT", "SEGM", "PULS"]:
+				raise ValueError('Sweep type mode must be LIN | LOG | POW | CW | SEGM | PHASE')
+		return self.write_or_query("SENS1:SWE:TYPE", val, "{:s}")
 		
 	def num_of_points(self, val=None):
 		return float(self.write_or_query("SENS1:SWE:POIN", int(val), "{:d}"))
 		
 	def averaging(self, val = None):
+		if val is not None:
+			if val>1:
+				self.instr.write('SENS:AVER:STAT ON')
+				self.instr.write('SENS:AVER:COUN {:d}'.format(val))
+			else:
+				self.instr.write('SENS:AVER:STAT OFF')
+		else:
+			if int(self.instr.query('SENS:AVER:STAT?')):
+				val = int(self.instr.query('SENS:AVER:COUN?'))
+			else:
+				val = 0
+		return val		
+'''			
 		return int(self.write_or_query('SENS:AVER:STAT', self.parse_on_off_val(val), "{:s}"))
-		
+	
 	def averaging_count(self, val = None):
 		return int(self.write_or_query('SENS:AVER:COUN', int(val), '{:d}'))
 		
-
-	
+'''

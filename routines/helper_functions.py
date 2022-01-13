@@ -42,11 +42,12 @@ def WaitForStableT(T_getter, Sensor, Tolerance, HoldTime, H_getter = None, Timeo
 			time.sleep(Interval)
 		return T, Status
 
-def stupid_waiting(t):
+def stupid_waiting(t, prnt = True):
 	if t > 1.:
 		for i in range(int(t),0,-1):
 			time.sleep(1)
-			#print("Delay... {:d}   ".format(i),end = "\r")
+			if prnt:
+				print("Delay... {:d}   ".format(i),end = "\r")
 		time.sleep( t - floor(t) )
 	else:
 		time.sleep(t)
