@@ -14,9 +14,8 @@ class PIDtable:
 
 class TemperatureController(TemperatureControllerBaseClass, VisaInstrument):
 	def __init__(self, *args, **kwargs):
-		VisaInstrument.__init__(self, *args, **kwargs)
+		VisaInstrument.__init__(self, *args, term_chars = '\n', **kwargs)
 		self.timeout = 10.
-		self.PIDfileDefaultPath = 'C:\\Users\\Public\\Documents\\iTC PID tables'
 		self.AutoPID = False
 		self.PIDtables = {}
 	###############################	
@@ -57,7 +56,7 @@ class TemperatureController(TemperatureControllerBaseClass, VisaInstrument):
 		val,err = self.GetLoopParam( Chan, "PIDT")
 		if not(err):
 			Pt = PIDtable()
-			Pt.Table = loadtxt( self.PIDfileDefaultPath+'\\'+PIDFile )
+			Pt.Table = loadtxt( PIDFile )
 			self.PIDtables[Chan] = Pt
 			Status = True
 		else: Status = False	

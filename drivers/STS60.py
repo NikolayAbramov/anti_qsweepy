@@ -3,7 +3,7 @@ import time
 from anti_qsweepy.drivers.instrument_base_classes import VisaInstrument
 from anti_qsweepy.routines.helper_functions import *
 	
-def BiasSourceByNNDAC(VisaInstrument):
+class BiasSourceByNNDAC(VisaInstrument):
 
 	def __init__(self, *args):
 		VisaInstrument.__init__(self, *args, term_chars = '\n')
@@ -15,19 +15,19 @@ def BiasSourceByNNDAC(VisaInstrument):
 	def setpoint(self, val = None):
 		if val is not None:
 			V = val/self.amper_per_volt
-			V0 = float( self.instrument.query( "volt 0?" ) )
-			V1 = float( self.instrument.query( "volt 1?" ) )
+			V0 = float( self.instr.query( "volt 0?" ) )
+			V1 = float( self.instr.query( "volt 1?" ) )
 			PrevI = (V1-V0)*self.amper_per_volt
 			if V < self.Vmax :
-				self.instrument.query( "volt 0,0" )
-				self.instrument.query( "volt 1,{:e}".format(V) )
+				self.instr.query( "volt 0,0" )
+				self.instr.query( "volt 1,{:e}".format(V) )
 			else:
-				self.instrument.query( "volt 1,{:e}".format(Vmax) )
-				self.instrument.query( "volt 0,{:e}".format( -(V-Vmax) ) )
-			wait_time = abs((PrevI-I)/self.ramp_speed*60)+1.
+				self.instr.query( "volt 1,{:e}".format(self.Vmax) )
+				self.instr.query( "volt 0,{:e}".format( -(V-self.Vmax) ) )
+			wait_time = abs((PrevI-val)/self.ramp_speed*60)+1.
 			stupid_waiting(wait_time)
-		V0 = float( self.instrument.query( "volt 0?" ) )
-		V1 = float( self.instrument.query( "volt 1?" ) )
+		V0 = float( self.instr.query( "volt 0?" ) )
+		V1 = float( self.instr.query( "volt 1?" ) )
 			#Return actual I set
 		return (V1-V0)*self.amper_per_volt
 	

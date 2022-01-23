@@ -12,7 +12,7 @@ def set_slow(val, speed, func, delay = 0.1):
 	else:		
 		func( val )
 		
-def WaitForStableT(T_getter, Sensor, Tolerance, HoldTime, H_getter = None, Timeout = 600., Interval = 2.):
+def WaitForStableT(Setpoint, T_getter, Sensor, Tolerance, HoldTime, H_getter = None, Timeout = 600., Interval = 2.):
 		StartTime = time.time()
 		RefTime = StartTime
 		InTol = False
