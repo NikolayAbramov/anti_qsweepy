@@ -1,7 +1,7 @@
 from matplotlib.pyplot import *
 from numpy import *
 import pickle
-from qsweepy import gain_noise
+from anti_qsweepy.routines import gain_noise
 import scipy.constants as sc
 
 data = pickle.load(open('raw_data.pkl', 'rb'))
