@@ -20,6 +20,8 @@ class Voltmeter(VisaInstrument):
 		return int(self.write_or_query("SENS:VOLT:RANG:AUTO", self.parse_on_off_val(val), "{:s}"))
 	
 	def aperture(self, val=None):
+		#Voltmeter integration time
+		#In this case time units are 50Hz mains cycles
 		return int(self.write_or_query("SENS:VOLT:NPLC", val, "{:d}"))
 
 	def averaging_count(self, val=None):

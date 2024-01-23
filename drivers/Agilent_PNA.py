@@ -58,7 +58,8 @@ class NetworkAnalyzer(VisaInstrument):
 		return val
 
 	def freq_cw(self, val=None):
-		return float(self.write_or_query("SENS1:FREQ:CW", val, "{:e}"))
+		#TODO
+		return val
 		
 	def num_of_points(self, val=None):
 		return int(self.write_or_query("SENS1:SWE:POIN", val, "{:d}"))

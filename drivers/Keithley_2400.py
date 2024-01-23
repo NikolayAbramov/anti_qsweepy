@@ -46,7 +46,7 @@ class SMU(VisaInstrument):
 	def limit(self, val=None):
 		return float(self.write_or_query( self.measurement_type+':PROT', val, "{:e}"))
 	
-	def range(self, val = None):
+	def source_range(self, val = None):
 		return float( self.write_or_query('SOUR:'+self.source_type+':RANG', val, "{:e}") )
 		
 	def meter_range(self, val = None):
@@ -86,23 +86,3 @@ class CurrentSource(VisaInstrument):
 		
 	def autorange(self, val=None):
 		return int(self.write_or_query('SOUR:CURR:RANG:AUTO', self.parse_on_off_val(val), "{:s}"))
-		
-class VoltageSource(VisaInstrument):
-	def __init__(self, *args, **kwargs):
-		VisaInstrument.__init__(self, *args, **kwargs)
-		self.instr.write('SOUR:FUNC VOLT')
-	
-	def setpoint(self, val = None):
-		return float( self.write_or_query('SOUR:VOLT', val, "{:e}") )
-	
-	def output(self, val = None):
-		return int(self.write_or_query("OUTP", self.parse_on_off_val(val), "{:s}"))
-		
-	def limit(self, val=None):
-		return float(self.write_or_query( 'CURR:PROT', val, "{:e}"))
-	
-	def range(self, val = None):
-		return float( self.write_or_query('SOUR:VOLT:RANG', val, "{:e}") )
-		
-	def autorange(self, val=None):
-		return int(self.write_or_query('SOUR:VOLT:RANG:AUTO', self.parse_on_off_val(val), "{:s}"))
