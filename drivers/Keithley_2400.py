@@ -46,7 +46,7 @@ class SMU(VisaInstrument):
 	def limit(self, val=None):
 		return float(self.write_or_query( self.measurement_type+':PROT', val, "{:e}"))
 	
-	def range(self, val = None):
+	def source_range(self, val = None):
 		return float( self.write_or_query('SOUR:'+self.source_type+':RANG', val, "{:e}") )
 		
 	def meter_range(self, val = None):
