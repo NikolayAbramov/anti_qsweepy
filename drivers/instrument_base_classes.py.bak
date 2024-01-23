@@ -12,6 +12,8 @@ class Instrument():
 			else:
 				val = "0"
 		return val
+		
+	def 
 
 #Base class for VISA instruments that use SCPI-style syntax
 class VisaInstrument():

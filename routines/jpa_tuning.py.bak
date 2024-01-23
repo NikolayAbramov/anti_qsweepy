@@ -634,9 +634,7 @@ class IMPATuner():
 		else:
 			ranges = [self.bias_range, self.pump_range, (self.target_freq-self.target_freq_span/2, self.target_freq+self.target_freq_span/2)]
 		self.res = di.differential_evolution(self._func_min_vect,  
-								ranges, tol = tol,
-								# std_tol = std_tol,
-								std_conv = std_tol,
+								ranges, tol = tol, 
 								popsize = popsize, minpopsize = minpopsize, maxiter_conv = maxiter, polish = False, **kwargs)
 		if len(self.res['x'])>2:
 			op = OperationPoint(G = self.target_gain, Pp = self.res['x'][1], I = self.res['x'][0], Fp = self.res['x'][2]*2, Fs = self.res['x'][2])
