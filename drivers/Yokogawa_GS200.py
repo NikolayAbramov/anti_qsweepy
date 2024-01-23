@@ -33,3 +33,7 @@ class CurrentSource(VisaInstrument):
 			else:
 				self.autorange = False
 		return self.autorange
+		
+	def channel(self, val = None):
+		"""This instrument has 1 channel"""
+		return 0

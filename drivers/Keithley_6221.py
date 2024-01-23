@@ -25,3 +25,7 @@ class CurrentSource(VisaInstrument):
 		
 	def autorange(self, val=None):
 		return int(self.write_or_query("SOUR:CURR:RANG:AUTO", self.parse_on_off_val(val), "{:s}"))
+    
+	def channel(self, val = None):
+		"""This instrument has 1 channel"""
+		return 0    

@@ -688,7 +688,7 @@ class DifferentialEvolutionSolver:
 				break
 			
 			if self.best_energy is not None:
-				if abs( self.best_energy - self.population_energies[0] ) < self.tol:
+				if abs((self.best_energy - self.population_energies[0])/self.best_energy) < self.tol:
 					iter_cnt += 1
 				else:
 					iter_cnt  = 0
