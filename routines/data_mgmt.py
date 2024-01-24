@@ -3,6 +3,7 @@ import shutil
 import datetime
 import pathlib
 import tables
+import re
 
 def default_save_path(root, time=True, name=None):
 
@@ -44,12 +45,38 @@ def data_file(path):
 def spawn_plotting_script(dest,name, py = True):
 	module_dir = os.path.dirname(os.path.abspath(__file__))
 	source_dir = os.path.split(module_dir)[0]+"\\plotting_scripts"
-	script_name = os.path.split(name)[-1]
 	if py:
-		shutil.copyfile(source_dir+"\\"+name+'.py', dest+"\\"+script_name+'.py')
+		shutil.copyfile(source_dir+"\\"+name+'.py', dest+"\\"+name+'.py')
 		shutil.copyfile(source_dir+"\\plot.bat", dest+"\\plot.bat")
 		bat = open(dest+"\\plot.bat", 'a')
-		bat.write(' '+script_name+'.py')
+		bat.write(' '+name+'.py')
 		bat.close()
 	else:
-		shutil.copyfile(source_dir+"\\"+name, dest+"\\"+script_name)
+		shutil.copyfile(source_dir+"\\"+name, dest+"\\"+name)
+		
+def add_vna_description(file, segment_table, parameter_val = None):
+	if parameter_val is not None:
+		class Parameter(tables.IsDescription):
+			parameter_name = tables.StringCol(16)   # 16-character String
+			parameter = tables.Float64Col()
+
+		parameter = file.create_table(file.root, 'parameter', Parameter, "parameter").row
+		parameter['parameter_name'] = ' '
+		parameter['parameter'] = parameter_val
+		parameter.append()
+
+	class SegmentTable(tables.IsDescription):
+		start = tables.Float64Col()
+		stop = tables.Float64Col()
+		points = tables.Float64Col()
+		power = tables.Float64Col()
+		bandwidth = tables.Float64Col()
+
+	s_table = file.create_table(file.root, 'segment_table', SegmentTable, "segment_table").row
+	for item in segment_table:
+		s_table['start'] = item['start']
+		s_table['stop'] = item['stop']
+		s_table['points'] = item['points']
+		s_table['power'] = item['power']
+		s_table['bandwidth'] = item['bandwidth']
+		s_table.append()
