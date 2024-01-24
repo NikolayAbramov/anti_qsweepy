@@ -543,10 +543,12 @@ class IMPATuner():
 	def _measure_ref(self):
 		self.bias.output('off')
 		self.pump.output('off')
+		self.vna.power(self.Ps+20)
 		self.vna.soft_trig_arm()
 		self.ref = self.vna.read_data()
 		#print("Reference level: {:f}db".format(db_ref))
 		f_cent,span = self.vna.freq_center_span()
+		self.vna.power(self.Ps)
 		self.vna.sweep_type('cw')
 		self.vna.freq_cw( f_cent + self.detuning )
 		noise_ref = self.vna.read_data()
@@ -610,7 +612,11 @@ class IMPATuner():
 			raise Ecxeption('Invalid argument shape')
 			
 	#Gain optimization
+<<<<<<< HEAD
 	def find_gain(self, popsize = 50, minpopsize = 5, tol = 0.06,std_tol = 1, maxiter = 20, **kwargs):
+=======
+	def find_gain(self, popsize = 50, minpopsize = 5, tol = 0.06, maxiter = 20, **kwargs):
+>>>>>>> bf1
 		#Setup insruments
 		self.bias.setpoint(0.)
 		self.bias.range(self.bias_source_range)
@@ -634,9 +640,13 @@ class IMPATuner():
 		else:
 			ranges = [self.bias_range, self.pump_range, (self.target_freq-self.target_freq_span/2, self.target_freq+self.target_freq_span/2)]
 		self.res = di.differential_evolution(self._func_min_vect,  
+<<<<<<< HEAD
 								ranges, tol = tol,
 								# std_tol = std_tol,
 								std_conv = std_tol,
+=======
+								ranges, tol = tol, 
+>>>>>>> bf1
 								popsize = popsize, minpopsize = minpopsize, maxiter_conv = maxiter, polish = False, **kwargs)
 		if len(self.res['x'])>2:
 			op = OperationPoint(G = self.target_gain, Pp = self.res['x'][1], I = self.res['x'][0], Fp = self.res['x'][2]*2, Fs = self.res['x'][2])

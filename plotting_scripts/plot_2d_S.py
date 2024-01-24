@@ -37,7 +37,7 @@ colorbar()
 subplot(2,3,5)
 title("delay, ns")
 uPh_filt = savgol_filter(uPh, 51,3)
-pcolormesh( c_coord, r_cord, -diff(uPh_filt)/((c_coord[1]-c_coord[0])*2.*pi) )
+pcolormesh( c_coord[:-1], r_cord, -diff(uPh_filt)/((c_coord[1]-c_coord[0])*2.*pi) )
 #clim((0.5e-7,0.6e-7))
 colorbar()
 

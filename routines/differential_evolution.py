@@ -53,7 +53,11 @@ _MACHEPS = np.finfo(np.float64).eps
 
 
 def differential_evolution(func, bounds, args=(), strategy='best1bin',
+<<<<<<< HEAD
 						   maxiter=1000, maxiter_conv = 10, threshold = 150, popsize=15, minpopsize = 10, tol=0.01, std_conv = 1,
+=======
+						   maxiter=1000, maxiter_conv = 10, threshold = 150, popsize=15, minpopsize = 10, tol=0.01,
+>>>>>>> bf1
 						   mutation=(0.5, 1), recombination=0.7, seed=None,
 						   callback=None, disp=False, polish=True,
 						   init='latinhypercube', atol=0, updating='immediate',
@@ -280,7 +284,11 @@ class DifferentialEvolutionSolver:
 
 	def __init__(self, func, bounds, args=(),
 				 strategy='best1bin', maxiter=1000, maxiter_conv = 10, threshold = 150, popsize=15, minpopsize = 10,
+<<<<<<< HEAD
 				 tol=0.01, std_conv = 1, mutation=(0.5, 1), recombination=0.7, seed=None,
+=======
+				 tol=0.01, mutation=(0.5, 1), recombination=0.7, seed=None,
+>>>>>>> bf1
 				 maxfun=np.inf, callback=None, disp=False, polish=True,
 				 init='latinhypercube', atol=0, updating='immediate',
 				 workers=1, constraints=(), x0=None, *, integrality=None):
@@ -475,8 +483,11 @@ class DifferentialEvolutionSolver:
 		
 		self.improved = False
 		self.best_energy = None
+<<<<<<< HEAD
 
 		self.std_conv = std_conv
+=======
+>>>>>>> bf1
 
 	def init_population_lhs(self):
 		"""
@@ -678,7 +689,11 @@ class DifferentialEvolutionSolver:
 			std_en = np.std(self.population_energies)
 			if self.disp:
 				print("differential_evolution step %d: f(x)= %g, std = %g, Np = %d"
+<<<<<<< HEAD
 					  % (nit, self.population_energies[0], std_en, self.num_population_members))
+=======
+					  % (nit, self.population_energies[0], np.std(self.population_energies), self.num_population_members))
+>>>>>>> bf1
 			
 			if self.callback:
 				c = self.tol / (self.convergence + _MACHEPS)
@@ -700,10 +715,13 @@ class DifferentialEvolutionSolver:
 			if iter_cnt > self.maxiter_conv:
 				break
 				
+<<<<<<< HEAD
 			# if std_en < std_tol:
 			if std_en < self.std_conv:
 				break
 				
+=======
+>>>>>>> bf1
 			self.best_energy = self.population_energies[0]
 
 		else:
