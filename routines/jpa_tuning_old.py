@@ -1,32 +1,15 @@
 from numpy import *
 import time
-import scipy.optimize as so
 import anti_qsweepy.routines.differential_evolution as di
 
 class OperationPoint():
 	def __init__(self, Fs = 0., Fp =0., Pp = 0. ,I = 0. ,G = 0., Gsnr = 0. ):
 		self.I = I
-		self.Fs = Fs
 		self.Pp  = Pp
 		self.Fp = Fp
+		self.Fs = Fs
 		self.G = G
-		self.Gsnr = Gsnr
 
-	def __str__(self):
-		return("""Fs = {:.6e} Hz
-Fp = {:.6e} Hz
-Pp = {:.3f} dBm
-I = {:.6e} A
-G = {:.2f} dB
-Gsnr = {:.2f} dB""".format(self.Fs,self.Fp,self.Pp,self.I,self.G,self.Gsnr))
-		
-	def file_str(self):
-		return  "{:.6e}\t{:.6e}\t{:.2f}\t{:e}\t{:.2f}\t{:.2f}".format(self.Fs, self.Fp, self.Pp, self.I, self.G, self.Gsnr )
-	
-	def file_str_header(self):
-		return "#Fs,Hz\t\tFp,Hz\t\tPp,dBm\tI,A\t\tG,dB\tGsnr,dB"
-		
-'''
 class TuningTable():
 	def __init__(self, points = []):
 		self.i = 0
@@ -66,70 +49,16 @@ class TuningTable():
 	
 	def load(self, path):
 		data = loadtxt(path).T
-		if hasattr(data[0],'__len__'):
-			self.G	=	data[0]
-			self.Fp	=	data[1]
-			self.Pp	=	data[2]
-			self.I	=	data[3]
-		else:
-			self.G	=	[data[0],]
-			self.Fp	= 	[data[1],]
-			self.Pp	= 	[data[2],]
-			self.I	= 	[data[3],]
+		self.G = data[0]
+		self.Fp = data[1]
+		self.Pp = data[2]
+		self.I = data[3]
 	
 	def ind(self,i):
 		return OperationPoint(G = self.G[i], I = self.I[i], Pp = self.Pp[i], Fp =self.Fp[i] )
 
 	def to_dict(self):
 		return {'G':self.G,'Fp':self.Fp, 'Pp':self.Pp,'I':self.I}
-'''		
-class TuningTable():
-	def __init__(self, points = []):
-		self.i = 0
-		self.points = points
-		
-	def __len__(self):
-		return len(self.points)
-	
-	def __iter__(self):
-		self.i=0
-		return self
-		
-	def __next__(self):
-		if self.i < len(self.points):
-			i = self.i
-			self.i += 1
-			return self.points[i]
-		else:
-			self.i=0
-			raise StopIteration	
-
-	def __getitem__(self, i):
-		return self.points[i]
-		
-	def __setitem__(self, i, val):
-		self.points[i] = val
-	
-	def add_point(self,op):
-		self.points += [op,]
-	
-	def dump(self, path):
-		file = open(path, 'w+')
-		file.write(self.points[0].file_str_header()+'\n')
-		for op in self.points:
-			file.write(op.file_str()+'\n')
-		file.close()	
-	
-	def load(self, path):
-		data = loadtxt(path)
-		self.points = []
-		if len(shape(data)) <2:
-			op = OperationPoint( Fs = data[0], Fp = data[1], Pp = data[2] ,I = data[3] ,G = data[4] ,Gsnr = data[5] )
-			self.add_point(op)
-		else:	
-			for row in data:
-				op = OperationPoint( Fs = row[0], Fp = row[1], Pp = row[2] ,I = row[3] ,G = row[4] ,Gsnr = row[5] )
-				self.add_point(op)
 
 class JpaTuner():
 	def __init__(self, vna = None, pump = None, bias = None ):
@@ -503,7 +432,7 @@ class JpaTuner():
 		Fpoints = self.vna.freq_points()
 		self.vna.soft_trig_abort()
 		
-		return S21on, S21off, Fpoints		
+		return S21on, S21off, Fpoints
 		
 #Tuner for wideband IMPA based on differetial evalution algorithm.
 #Works for both wide and narrow band modes. For narrow band modes central point weight is more important.
@@ -543,10 +472,12 @@ class IMPATuner():
 	def _measure_ref(self):
 		self.bias.output('off')
 		self.pump.output('off')
+		self.vna.power(self.Ps+20)
 		self.vna.soft_trig_arm()
 		self.ref = self.vna.read_data()
 		#print("Reference level: {:f}db".format(db_ref))
 		f_cent,span = self.vna.freq_center_span()
+		self.vna.power(self.Ps)
 		self.vna.sweep_type('cw')
 		self.vna.freq_cw( f_cent + self.detuning )
 		noise_ref = self.vna.read_data()

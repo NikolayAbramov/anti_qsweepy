@@ -2,6 +2,8 @@ import tables
 from numpy import *
 from matplotlib.pyplot import *
 from scipy.signal import *
+import os
+os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
 #Open HDF5 data file
 f = tables.open_file('data.h5', mode='r')
