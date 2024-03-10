@@ -45,11 +45,12 @@ def data_file(path):
 def spawn_plotting_script(dest,name, py = True):
 	module_dir = os.path.dirname(os.path.abspath(__file__))
 	source_dir = os.path.split(module_dir)[0]+"\\plotting_scripts"
+	script_name = os.path.split(name)[-1]
 	if py:
-		shutil.copyfile(source_dir+"\\"+name+'.py', dest+"\\"+name+'.py')
+		shutil.copyfile(source_dir+"\\"+name+'.py', dest+"\\"+script_name+'.py')
 		shutil.copyfile(source_dir+"\\plot.bat", dest+"\\plot.bat")
 		bat = open(dest+"\\plot.bat", 'a')
-		bat.write(' '+name+'.py')
+		bat.write(' '+script_name+'.py')
 		bat.close()
 	else:
 		shutil.copyfile(source_dir+"\\"+name, dest+"\\"+name)

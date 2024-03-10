@@ -2,6 +2,8 @@ import tables
 from numpy import *
 from matplotlib.pyplot import *
 from matplotlib.widgets import Button
+import os
+os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
 db = lambda x: 20*log10(x)
 
