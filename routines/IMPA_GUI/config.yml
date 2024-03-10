@@ -1,0 +1,63 @@
+# IMPA GUI configuration file
+hardware_connected: !!bool True
+channels:
+- name: !!str Channel 0
+  vna:
+    driver_name: !!str Dummy_VNA
+    class_name: !!str NetworkAnalyzer
+    address: !!str Dummy_VNA
+    is_connected: !!bool True
+    channel: !!int 0
+    center: !!float 7e9
+    span: !!float 2e9
+    points: !!int 1000
+    bandwidth: !!float 1000
+    power: !!float -20
+  bias_source:
+    driver_name: !!str Dummy_CurrentSource
+    class_name: !!str CurrentSource
+    address: !!str Dummy_CurrentSource
+    is_connected: !!bool True
+    channel: !!int 0
+    output: !!bool True
+    current:  !!float 0
+    compliance_voltage: !!float 1
+  pump_source:
+    driver_name: !!str Dummy_Generator
+    class_name: !!str Generator
+    address: !!str Dummy_Generator
+    is_connected: !!bool True
+    channel: !!int 0
+    frequency: !!float 14e9
+    power: !!float 0
+    output: !!bool True
+- name: !!str Channel 1
+  vna:
+    driver_name: !!str Dummy_VNA
+    class_name: !!str NetworkAnalyzer
+    address: !!str Dummy_VNA
+    is_connected: !!bool True
+    channel: !!int 0
+    center: !!float 7e9
+    span: !!float 2e9
+    points: !!int 1000
+    bandwidth: !!float 1000
+    power: !!float -20
+  bias_source:
+    driver_name: !!str Dummy_CurrentSource
+    class_name: !!str CurrentSource
+    address: !!str Dummy_CurrentSource
+    is_connected: !!bool True
+    channel: !!int 0
+    output: !!bool True
+    current:  !!float 0
+    compliance_voltage: !!float 1
+  pump_source:
+    driver_name: !!str Dummy_Generator
+    class_name: !!str Generator
+    address: !!str Dummy_Generator
+    is_connected: !!bool True
+    channel: !!int 0
+    frequency: !!float 14e9
+    power: !!float 0
+    output: !!bool True
