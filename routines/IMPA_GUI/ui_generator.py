@@ -1,4 +1,5 @@
 from nicegui import ui
+from typing import Callable
 import data_structures as ds
 import ui_callbacks as ui_cb
 
@@ -140,7 +141,10 @@ class UiGenerator:
                 .bind_value_from(self.ui_objects.channel_tabs[ch_id].chan.bias_source.output, 'value')\
                 .bind_enabled(self.ui_objects.channel_tabs[ch_id].chan.bias_source.output, 'enabled')\
                 .on('click', toggle_bias_output_cb)
-        self._create_inp_w_step_and_btns(ch_id, tab.chan.pump_source.frequency, callback=self.cb.set_pump_freq)
+        self._create_inp_w_step_and_btns(ch_id, tab.chan.pump_source.frequency,
+                                         callback=self.cb.set_pump_freq,
+                                         inc_callback=self.cb.inc_pump_freq,
+                                         dec_callback=self.cb.dec_pump_freq)
         self._create_inp_w_step_and_btns(ch_id, tab.chan.pump_source.power)
         self._create_inp_w_step_and_btns(ch_id, tab.chan.bias_source.current)
         with ui.row(wrap=False):
@@ -213,17 +217,58 @@ class UiGenerator:
         pass
 
     def _fill_bias_sweep_tab(self, ch_id: int) -> None:
-        pass
+        ch_tab = self.ui_objects.channel_tabs[ch_id]
+        with ui.column():
+            # Run/abort button
+            ui.button('Run')  # , on_click=connect_btn_cb) \
+            # .bind_enabled(ch_tab.chan.vna.is_connected, 'enabled') \
+            # .bind_text(ch_tab.chan.vna.is_connected, 'str_repr') \
+            # .classes('w-28')
+            # Start input
+            with ui.row(wrap=False):
+                ui.number(label='Start', suffix='mA', step=0.001).classes('w-28')\
+                    .bind_value(ch_tab.chan.bias_sweep, 'bias_start')
+                    #.on('keydown.enter', bandwidth_cb)\
+                    #.bind_enabled(ch_tab.chan.vna.bandwidth, 'enabled')\
+                    #.classes('w-20')
+            # Stop input
+            with ui.row(wrap=False):
+                ui.number(label='Stop', suffix='mA',step=0.001).classes('w-28')\
+                    .bind_value(ch_tab.chan.bias_sweep, 'bias_stop')
+                    #.on('keydown.enter', center_cb)\
+                    #.bind_enabled(ch_tab.chan.vna.center, 'enabled')\
+                    #.classes('w-20')
+            # Step input
+            with ui.row(wrap=False):
+                ui.number(label='Step', suffix='mA',step=0.001).classes('w-28')\
+                    .bind_value(ch_tab.chan.bias_sweep, 'bias_step')
+                    #.on('keydown.enter', center_cb)\
+                    #.bind_enabled(ch_tab.chan.vna.center, 'enabled')\
+                    #.classes('w-20')
 
-    def _create_inp_w_step_and_btns(self, ch_id: int, p: ds.FloatUIParam, callback=None) -> None:
+    def _create_inp_w_step_and_btns(self,
+                                    ch_id: int,
+                                    p: ds.FloatUIParam,
+                                    callback: Callable= None,
+                                    inc_callback: Callable = None,
+                                    dec_callback: Callable = None) -> None:
         """Creates special input with +- buttons for main parameters:
         pump_frequency, pump_power, bias_current"""
         if callback is None:
             change_float = lambda: self.cb.change_float_param(ch_id, p)
         else:
             change_float = lambda: callback(ch_id, p)
-        inc_float = lambda: self.cb.inc_param(ch_id, p)
-        dec_float = lambda: self.cb.dec_param(ch_id, p)
+
+        if inc_callback is None:
+            inc_float = lambda: self.cb.inc_param(ch_id, p)
+        else:
+            inc_float = lambda: inc_callback(ch_id, p)
+
+        if dec_callback is None:
+            dec_float = lambda: self.cb.dec_param(ch_id, p)
+        else:
+            dec_float = lambda: dec_callback(ch_id, p)
+
         with ui.row(wrap=False):
             inp = ui.input(label=p.name, validation=validate_float).bind_value(p, 'str_repr')
             inp.on('keydown.enter', change_float)

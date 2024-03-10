@@ -193,8 +193,8 @@ class BiasSource(Device):
                                                        precision=0.001,
                                                        unit=1e-3,
                                                        str_fmt='{:.3f}',
-                                                       min=-50e-3,
-                                                       max=50e-3))
+                                                       min=-50,
+                                                       max=50))
     compliance_voltage: FloatUIParam = field(default_factory=
                                              lambda: FloatUIParam(name='Compliance voltage',
                                                                   method='set_bias_limit',
@@ -234,6 +234,15 @@ class PumpSource(Device):
                                                      min=0.01,
                                                      max=50))
 
+@dataclass
+class BiasSweep:
+    bias_start: float = 0
+    bias_stop: float = 0
+    bias_step: float = 0
+    vna_start: float = 0
+    vna_stop: float = 0
+    vna_power: float = 0
+    vna_points: int = 0
 
 @dataclass
 class Channel:
@@ -242,6 +251,7 @@ class Channel:
     vna:            VNA = field(default_factory=lambda: VNA())
     bias_source:    BiasSource = field(default_factory=lambda: BiasSource())
     pump_source:    PumpSource = field(default_factory=lambda: PumpSource())
+    bias_sweep:     BiasSweep = field(default_factory=lambda: BiasSweep())
 
 
 @dataclass

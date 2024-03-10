@@ -1,6 +1,7 @@
 import queue
 import traceback as tb
 from dataclasses import fields
+from typing import Any
 
 import data_structures as ds
 import multiprocessing as mp
@@ -37,28 +38,25 @@ class UiCallbacks:
                         self._connect_device(attr, ch_id)
 
     def change_float_param(self, ch_id: int, p: ds.FloatUIParam) -> None:
-        val = p.get_value()
-        if not self._queue_param(ch_id, val, p.method):
-            p.update_str()
-        else:
-            p.enabled = False
+        self._queue_param(ch_id, p.get_value(), p)
 
     def toggle_bool_param(self, ch_id: int, p: ds.BoolUIParameter) -> None:
-        if self._queue_param(ch_id, not p.value, p.method):
-            p.enabled = False
+        self._queue_param(ch_id, not p.value, p)
 
     def inc_param(self, ch_id: int, p: ds.FloatUIParam) -> None:
-        self._queue_param(ch_id, p.inc(), p.method)
+        self._queue_param(ch_id, p.inc(), p)
 
     def dec_param(self, ch_id: int, p: ds.FloatUIParam) -> None:
-        self._queue_param(ch_id, p.dec(), p.method)
+        self._queue_param(ch_id, p.dec(), p)
 
-    def _queue_param(self, ch_id, val: float,  method: str) -> bool:
+    def _queue_param(self, ch_id, val: Any,  p: ds.UIParameter) -> bool:
         try:
-            self.q_command.put({'op': method, 'args': (val, ch_id)})
+            self.q_command.put({'op': p.method, 'args': (val, ch_id)})
         except queue.Full:
+            p.update_str()
             return False
         else:
+            p.enabled = False
             return True
 
     async def pick_gain_file(self, ch_id: int) -> None:
@@ -179,7 +177,7 @@ class UiCallbacks:
         if ch_tab.chan.vna.pump_center_bind.value:
             p.enabled = False
             val = ch_tab.chan.pump_source.frequency.get_value()/2
-            self._queue_param(ch_id, val, p.method)
+            self._queue_param(ch_id, val, p)
         else:
             p.enabled = True
 
@@ -194,5 +192,23 @@ class UiCallbacks:
         ch_tab = self.ui_objects.channel_tabs[ch_id]
         if ch_tab.chan.vna.pump_center_bind.value:
             val = ch_tab.chan.pump_source.frequency.get_value() / 2
-            self._queue_param(ch_id, val, ch_tab.chan.vna.center.method)
+            self._queue_param(ch_id, val, ch_tab.chan.vna.center)
         self.change_float_param(ch_id, ch_tab.chan.pump_source.frequency)
+
+    def inc_pump_freq(self, ch_id: int, p: ds.FloatUIParam) -> None:
+        ch_tab = self.ui_objects.channel_tabs[ch_id]
+        pump_freq = ch_tab.chan.pump_source.frequency.inc()
+        self._queue_pump_freq(ch_id, pump_freq)
+
+    def dec_pump_freq(self, ch_id: int, p: ds.FloatUIParam) -> None:
+        ch_tab = self.ui_objects.channel_tabs[ch_id]
+        pump_freq = ch_tab.chan.pump_source.frequency.dec()
+        self._queue_pump_freq(ch_id, pump_freq)
+
+    def _queue_pump_freq(self, ch_id: int, pump_freq: float):
+        ch_tab = self.ui_objects.channel_tabs[ch_id]
+        if ch_tab.chan.vna.pump_center_bind.value:
+            vna_center = pump_freq/2
+            self._queue_param(ch_id, vna_center, ch_tab.chan.vna.center)
+        self._queue_param(ch_id, pump_freq, ch_tab.chan.pump_source.frequency)
+
