@@ -32,7 +32,6 @@ class UiCallbacks:
             chan = self.ui_objects.channel_tabs[ch_id].chan
             for f in fields(chan):
                 attr = getattr(chan, f.name)
-                print(type(attr).mro())
                 if ds.Device in type(attr).mro():
                     if attr.is_connected.value:
                         self._connect_device(attr, ch_id)
@@ -57,6 +56,14 @@ class UiCallbacks:
             return False
         else:
             p.enabled = False
+            return True
+
+    def _queue_command(self, op: str, args: tuple) -> bool:
+        try:
+            self.q_command.put({'op': op, 'args': args})
+        except queue.Full:
+            return False
+        else:
             return True
 
     async def pick_gain_file(self, ch_id: int) -> None:
@@ -124,18 +131,33 @@ class UiCallbacks:
         result = await local_file_picker('~', multiple=False)
         if result is not None:
             result = result[0]
-            try:
-                tab.bias_sweep_file = HDF5BiasSweepFile(result, mode='r')
-            except Exception:
-                tab.log.push("Unable to open file:" + result)
-                tb.print_exc()
-            else:
-                tab.log.push("Opened bias sweep file:" + result)
-                tab.bias_sweep_file_toolbar_enabled = True
-                if not self.update_bias_sweep_plot_from_file(ch_id):
-                    self.close_bias_sweep_file(ch_id)
+            self.open_bias_sweep_file(result, ch_id)
 
-    def update_bias_sweep_plot_from_file(self, ch_id: int) -> bool:
+    def open_bias_sweep_file(self, path: str, ch_id: int, log: bool = True) -> None:
+        tab = self.ui_objects.channel_tabs[ch_id]
+        old_filename = ''
+        if tab.bias_sweep_file is not None:
+            old_filename = tab.bias_sweep_file.filename
+            tab.bias_sweep_file.close()
+        try:
+            tab.bias_sweep_file = HDF5BiasSweepFile(path, mode='r')
+        except Exception:
+            tab.bias_sweep_file = HDF5BiasSweepFile(old_filename, mode='r')
+            tab.log.push("Unable to open file:" + path)
+            tb.print_exc()
+        else:
+            if log:
+                tab.log.push("Opened bias sweep file:" + path)
+            tab.bias_sweep_file_toolbar_enabled = True
+            if not self.update_bias_sweep_plot(ch_id):
+                self.close_bias_sweep_file(ch_id)
+
+    def update_bias_sweep_plot_from_file(self, ch_id: int) -> None:
+        tab = self.ui_objects.channel_tabs[ch_id]
+        filename = tab.bias_sweep_file.filename
+        self.open_bias_sweep_file(filename, ch_id, log=False)
+
+    def update_bias_sweep_plot(self, ch_id: int) -> bool:
         tab = self.ui_objects.channel_tabs[ch_id]
         data = tab.bias_sweep_file.get_data()
         if data['status']:
@@ -205,10 +227,28 @@ class UiCallbacks:
         pump_freq = ch_tab.chan.pump_source.frequency.dec()
         self._queue_pump_freq(ch_id, pump_freq)
 
-    def _queue_pump_freq(self, ch_id: int, pump_freq: float):
+    def _queue_pump_freq(self, ch_id: int, pump_freq: float) -> None:
         ch_tab = self.ui_objects.channel_tabs[ch_id]
         if ch_tab.chan.vna.pump_center_bind.value:
             vna_center = pump_freq/2
             self._queue_param(ch_id, vna_center, ch_tab.chan.vna.center)
         self._queue_param(ch_id, pump_freq, ch_tab.chan.pump_source.frequency)
 
+    def start_stop_bias_sweep(self, ch_id: int) -> None:
+        ch = self.ui_objects.channel_tabs[ch_id].chan
+        if not ch.bias_sweep.is_running.value:
+            data = {'ch_id': ch_id}
+            for f in fields(ch.bias_sweep):
+                attr = getattr(ch.bias_sweep, f.name)
+                if ds.UIParameter in type(attr).mro() and attr.instrumental:
+                    data.update({f.name: attr.value})
+            data.update({'save_path': r'D:\IMPA'})
+            if ch.pump_source.is_connected.value:
+                self._queue_command('set_pump_output', (False, ch_id))
+            if ch.vna.is_connected.value and ch.pump_source.is_connected.value:
+                if self._queue_command('start_bias_sweep', (data,)):
+                    ch.bias_sweep.progress = 0
+                    ch.bias_sweep.is_running.enabled = False
+        else:
+            if self._queue_command('abort_bias_sweep', (ch_id,)):
+                ch.bias_sweep.is_running.enabled = False

@@ -11,7 +11,8 @@ def validate_float(s: str) -> str | None:
     try:
         float(s)
     except ValueError:
-        return "Not a float!"
+        #return "Not a float!"
+        return ''
     return None
 
 
@@ -68,6 +69,7 @@ class UiGenerator:
         browse_gain_file_left = lambda: self.cb.browse_gain_file_left(ch_id)
         browse_gain_file_right = lambda: self.cb.browse_gain_file_right(ch_id)
         pick_bias_sweep_file = lambda: self.cb.pick_bias_sweep_file(ch_id)
+        update_bias_sweep_plot_from_file = lambda: self.cb.update_bias_sweep_plot_from_file(ch_id)
         close_bias_sweep_file = lambda: self.cb.close_bias_sweep_file(ch_id)
 
         with ui.row(wrap=False).classes('w-full'):
@@ -96,7 +98,7 @@ class UiGenerator:
                     ui.button('', on_click=pick_bias_sweep_file, icon='folder') \
                         .classes('text-xs mt-2 ml-1') \
                         .tooltip('Open file')
-                    ui.button('Update', on_click=tab.bias_sweep_plot.update) \
+                    ui.button('Update', on_click=update_bias_sweep_plot_from_file) \
                         .classes('text-xs mt-2 ml-1') \
                         .bind_enabled(tab, 'bias_sweep_file_toolbar_enabled') \
                         .tooltip('Yes, you have to because this shit is slow :(')
@@ -217,34 +219,39 @@ class UiGenerator:
         pass
 
     def _fill_bias_sweep_tab(self, ch_id: int) -> None:
-        ch_tab = self.ui_objects.channel_tabs[ch_id]
+        chan = self.ui_objects.channel_tabs[ch_id].chan
+        start_btn_cb = lambda: self.cb.start_stop_bias_sweep(ch_id)
         with ui.column():
-            # Run/abort button
-            ui.button('Run')  # , on_click=connect_btn_cb) \
-            # .bind_enabled(ch_tab.chan.vna.is_connected, 'enabled') \
-            # .bind_text(ch_tab.chan.vna.is_connected, 'str_repr') \
-            # .classes('w-28')
+            with ui.row(wrap=False):
+                # Run/abort button
+                ui.button('Start', on_click=start_btn_cb) \
+                    .bind_enabled(chan.bias_sweep.is_running, 'enabled') \
+                    .bind_text(chan.bias_sweep.is_running, 'str_repr') \
+                    .classes('w-28')
+                ui.circular_progress(min = 0, max = 100)\
+                    .bind_value_from(chan.bias_sweep, 'progress')\
+                    .bind_visibility_from(chan.bias_sweep.is_running, 'value')\
+                    .classes('ml-4')
             # Start input
             with ui.row(wrap=False):
-                ui.number(label='Start', suffix='mA', step=0.001).classes('w-28')\
-                    .bind_value(ch_tab.chan.bias_sweep, 'bias_start')
-                    #.on('keydown.enter', bandwidth_cb)\
-                    #.bind_enabled(ch_tab.chan.vna.bandwidth, 'enabled')\
-                    #.classes('w-20')
-            # Stop input
-            with ui.row(wrap=False):
-                ui.number(label='Stop', suffix='mA',step=0.001).classes('w-28')\
-                    .bind_value(ch_tab.chan.bias_sweep, 'bias_stop')
-                    #.on('keydown.enter', center_cb)\
-                    #.bind_enabled(ch_tab.chan.vna.center, 'enabled')\
-                    #.classes('w-20')
-            # Step input
-            with ui.row(wrap=False):
-                ui.number(label='Step', suffix='mA',step=0.001).classes('w-28')\
-                    .bind_value(ch_tab.chan.bias_sweep, 'bias_step')
-                    #.on('keydown.enter', center_cb)\
-                    #.bind_enabled(ch_tab.chan.vna.center, 'enabled')\
-                    #.classes('w-20')
+                with ui.column():
+                    self._create_parameter_input(chan.bias_sweep.bias_start, 'w-28')
+                    self._create_parameter_input(chan.bias_sweep.bias_stop, 'w-28')
+                    self._create_parameter_input(chan.bias_sweep.bias_step, 'w-28')
+                    self._create_parameter_input(chan.bias_sweep.vna_bandwidth, 'w-28')
+                with ui.column().classes('ml-4'):
+                    self._create_parameter_input(chan.bias_sweep.vna_start, 'w-28')
+                    self._create_parameter_input(chan.bias_sweep.vna_stop, 'w-28')
+                    self._create_parameter_input(chan.bias_sweep.vna_points, 'w-28')
+                    self._create_parameter_input(chan.bias_sweep.vna_power, 'w-28')
+
+    def _create_parameter_input(self, p: ds.UIParameter, classes: str = 'w-20') -> None:
+        ui.input(label=p.name, validation=validate_float)\
+            .on('keydown.enter', p.update_val)\
+            .on('blur',  p.update_val)\
+            .bind_value(p, 'str_repr')\
+            .bind_enabled(p, 'enabled')\
+            .classes(classes)
 
     def _create_inp_w_step_and_btns(self,
                                     ch_id: int,

@@ -9,8 +9,8 @@ import multiprocessing as mp
 
 
 if __name__ == "__main__":
-    q_command = mp.Queue(maxsize=10)
-    q_feedback = mp.Queue(maxsize=10)
+    q_command = mp.Queue(maxsize=20)
+    q_feedback = mp.Queue(maxsize=20)
 
     ui_objects = ds.UiObjects()
     conf_h = ConfigHandler(ui_objects)
@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     ui_cb = UiCallbacks(ui_objects, q_command)
     ui_gen = UiGenerator(ui_objects, ui_cb)
-    fp = FeedbackProcessor(q_feedback, ui_objects)
+    fp = FeedbackProcessor(q_feedback, q_command, ui_objects, ui_cb)
 
     ui_gen.create_ui()
 

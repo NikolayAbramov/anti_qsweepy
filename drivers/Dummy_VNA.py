@@ -1,9 +1,9 @@
-# Network alnalyzer simulation model
+# Network analyzer simulation model
 import numpy as np
 import numpy.typing as npt
 import time
 from typing import Any
-
+import scipy.constants as sc
 
 class NetworkAnalyzer:
 
@@ -19,6 +19,14 @@ class NetworkAnalyzer:
         self._output = False
         self._sw_type = 'LIN'
         self._attr = 0
+        # Abort flag to use when
+        # read_data method is executed as a separate thread
+        self._abort = False
+        self._rng = np.random.default_rng()
+        # Receiver noise temperature
+        self._Tn = 1000
+        # System impedance
+        self._Z0 = 50
 
     def _query_or_write(self, attr_name: str, val: Any = None) -> Any:
         if val is not None:
@@ -28,12 +36,29 @@ class NetworkAnalyzer:
     def soft_trig_arm(self) -> None:
         pass
 
+    def abort(self) -> None:
+        """Abort method to use when
+        read_data method is executed as a separate thread"""
+        self._abort = True
+
     def read_data(self) -> np.ndarray:
-        time.sleep(self._points / self._bandwidth)
+        self._abort = False
+        t = self._points / self._bandwidth
+        tslp = 0.01
+        while t>0:
+            if self._abort:
+                self._abort = False
+                return np.array(())
+            time.sleep(tslp)
+            t -= tslp
         x = self.freq_points()
         r_offset = 0.01
+        sigma = 2*np.sqrt(sc.k * self._Tn * self._Z0 * self._bandwidth)
+        power = (10**(self._power/10))*1e-3
+        noise = sigma*(self._rng.standard_normal(len(x)) +
+                       1.j*self._rng.standard_normal(len(x)))/np.sqrt(power * self._Z0)
         data = (np.sin(2 * np.pi * x / self._period) + 1 + r_offset +
-                1.j * np.cos(2 * np.pi * x / self._period)) / (2 + r_offset)
+                1.j * np.cos(2 * np.pi * x / self._period)) / (2 + r_offset) + noise
         return data
 
     def soft_trig_abort(self) -> None:

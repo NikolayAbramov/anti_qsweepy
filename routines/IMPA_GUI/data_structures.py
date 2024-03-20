@@ -13,9 +13,14 @@ class UIParameter:
     str_repr:   str = '0'
     enabled:    bool = True
     value:      Any = None
+    instrumental: bool = True
 
     def update_str(self) -> None:
         """Should update self.str_repr from self.value"""
+        pass
+
+    def update_val(self) -> None:
+        """Should update  self.value from self.str_repr"""
         pass
 
     def update(self, val: Any) -> None:
@@ -46,6 +51,10 @@ class FloatUIParam(UIParameter):
         """Updates string representation"""
         self.str_repr = self.str_fmt.format(self.value/self.unit)
 
+    def update_val(self) -> None:
+        self.value = self.get_value()
+        self.update_str()
+
     def update(self, val: float) -> None:
         """Updates value and string representation"""
         self.value = val
@@ -53,11 +62,12 @@ class FloatUIParam(UIParameter):
 
     def get_value(self) -> float:
         """Converts string representation into a conditioned value"""
-        if self.str_repr in ['','+','-']:
+        try:
+            val = float(self.str_repr)
+        except ValueError:
             self.update_str()
             return self.value
-        else:
-            val = float(self.str_repr)
+
         if val > self.max:
             return self.max * self.unit
         if val < self.min:
@@ -111,6 +121,7 @@ class Device:
     disconnect_method: str = 'disconnect_device'
     is_connected: BoolUIParameter = field(default_factory=
                                        lambda: BoolUIParameter(
+                                            instrumental=False,
                                             name='connected',
                                             method='device_connect',
                                             value=False,
@@ -176,7 +187,8 @@ class VNA(Device):
     pump_center_bind: BoolUIParameter = field(default_factory=
                                               lambda: BoolUIParameter(name='Bind pump to vna center',
                                                                       value=False,
-                                                                      enabled=True))
+                                                                      enabled=True,
+                                                                      instrumental=False))
 
 @dataclass
 class BiasSource(Device):
@@ -236,13 +248,110 @@ class PumpSource(Device):
 
 @dataclass
 class BiasSweep:
-    bias_start: float = 0
-    bias_stop: float = 0
-    bias_step: float = 0
-    vna_start: float = 0
-    vna_stop: float = 0
-    vna_power: float = 0
-    vna_points: int = 0
+    is_running: BoolUIParameter = \
+        field(default_factory=
+              lambda: BoolUIParameter(
+                instrumental=False,
+                name='running',
+                method='',
+                value=False,
+                enabled=True,
+                str_repr='Start',
+                str_true='Stop',
+                str_false='Start'
+              ))
+    bias_start: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Bias start, mA',
+                precision=0.001,
+                unit=1e-3,
+                str_fmt='{:.3f}',
+                min=-50,
+                max=50
+                ))
+    bias_stop: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Bias stop, mA',
+                precision=0.001,
+                unit=1e-3,
+                str_fmt='{:.3f}',
+                min=-50,
+                max=50
+                ))
+    bias_step: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Bias step, mA',
+                precision=0.001,
+                unit=1e-3,
+                str_fmt='{:.3f}',
+                min=-50,
+                max=50
+                ))
+    vna_start: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='VNA start, GHz',
+                precision=0.001,
+                unit=1e9,
+                str_fmt='{:.3f}',
+                min=-50,
+                max=50
+                ))
+    vna_stop: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='VNA stop, GHz',
+                precision=0.001,
+                unit=1e9,
+                str_fmt='{:.3f}',
+                min=-50,
+                max=50
+                ))
+    vna_power: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='VNA power, dBm',
+                precision=0.01,
+                unit=1,
+                str_fmt='{:.2f}',
+                min=-100,
+                max=20
+                ))
+    vna_points: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='VNA points',
+                precision=1,
+                unit=1,
+                str_fmt='{:.0f}',
+                min=0,
+                max=10000
+                ))
+    vna_bandwidth: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='VNA bandwidth, Hz',
+                precision=1,
+                unit=1,
+                str_fmt='{:.0f}',
+                min=1,
+                max=1000000,
+                value=10000
+                ))
+    save_path: str = ''
+    progress: float = 0
+
+    def set_parameters_enable(self, val: bool):
+        """Enable or disable all the parameters except for
+        self.is_connected"""
+        for f in fields(self):
+            if f.name != 'is_running':
+                attr = getattr(self, f.name)
+                if UIParameter in type(attr).mro():
+                    attr.enabled = val
 
 @dataclass
 class Channel:
