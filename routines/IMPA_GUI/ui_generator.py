@@ -55,7 +55,9 @@ class UiGenerator:
             control_tab = ui.tab("Control")
             for tab in self.ui_objects.channel_tabs:
                 tab.tab = ui.tab(tab.chan.name)
-        with ui.tab_panels(tabs, value=self.ui_objects.channel_tabs[0].tab).classes('w-full'):
+            tabs.bind_value(self.ui_objects, 'current_tab')
+        with ui.tab_panels(tabs, value=self.ui_objects.channel_tabs[0].chan.name)\
+                .classes('w-full'):
             with ui.tab_panel(control_tab):
                 ui.switch('VNA')
             for ch_id, tab in enumerate(self.ui_objects.channel_tabs):

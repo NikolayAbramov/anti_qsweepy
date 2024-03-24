@@ -8,6 +8,7 @@ import scipy.constants as sc
 class NetworkAnalyzer:
 
     def __init__(self, *args):
+        self._ch = 0
         self._power = 0
         self._bandwidth = 1000
         self._center = 7e9
@@ -32,6 +33,12 @@ class NetworkAnalyzer:
         if val is not None:
             setattr(self, attr_name, val)
         return getattr(self, attr_name)
+
+    def channel(self, val=None):
+        """Set active channel"""
+        if val is not None:
+            self._ch = val
+        return self._ch
 
     def soft_trig_arm(self) -> None:
         pass

@@ -15,12 +15,13 @@ class UiCallbacks:
         self.q_command = q_command
         self.ui_objects = ui_objects
 
-    def _connect_device(self, device: ds.Device, ch_id: int) -> None:
-        driver_name = device.driver_name
-        class_name = device.class_name
-        address = device.address
+    def _connect_device(self, device: ds.Device, ui_ch: int) -> None:
         self.q_command.put({'op': device.connect_method,
-                            'args': (driver_name, class_name, address, ch_id)})
+                            'args': (device.driver_name,
+                                     device.class_name,
+                                     device.address,
+                                     device.channel,
+                                     ui_ch)})
 
     def _disconnect_device(self, device: ds.Device, ch_id: int) -> None:
         self.q_command.put({'op': device.disconnect_method,
@@ -204,7 +205,10 @@ class UiCallbacks:
             p.enabled = True
 
     def request_vna_data(self):
-        ch_id = 0
+        try:
+            ch_id = self.ui_objects.channel_name_id[self.ui_objects.current_tab]
+        except KeyError:
+            return
         tab = self.ui_objects.channel_tabs[ch_id]
         status = tab.chan.vna.is_connected.value
         if status and self.q_command.empty():

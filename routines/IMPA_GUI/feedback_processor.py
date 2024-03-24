@@ -136,7 +136,8 @@ class FeedbackProcessor:
             if command['op'] != "update_gain_plot":
                 print("Main process got feedback: ", command['op'],command['args'])
             else:
-                print("Main process got feedback: ", command['op'])
+                pass
+                #print("Main process got feedback: ", command['op'])
             try:
                 getattr(self, command['op'])(*command['args'])
             except Exception as err:

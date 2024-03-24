@@ -365,8 +365,7 @@ class Channel:
 
 @dataclass
 class GainPlotTraces:
-    """Id-s of the gain plots traces within the 'data' list of the
-    default_gain_fig dict describing plotly figure"""
+    """Id-s of the gain plots traces."""
     vna_s21: int = 0
     vna_snr_gain: int = 1
     file_gain: int = 2
@@ -495,5 +494,7 @@ class ChannelTab:
 class UiObjects:
     """Top level container for UI related data objects"""
     gain_plot_traces: GainPlotTraces = field(default_factory=lambda: GainPlotTraces())
+    current_tab: str = None
     control_tab: ui.tab = None
     channel_tabs: list[ChannelTab] = field(default_factory=lambda: [])
+    channel_name_id: dict[str, int] = field(default_factory=lambda: {})

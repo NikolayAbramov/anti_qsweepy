@@ -35,3 +35,4 @@ class ConfigHandler:
             config_obj_from_dict(tab.chan.bias_source, ch_config['bias_source'])
             config_obj_from_dict(tab.chan.pump_source, ch_config['pump_source'])
             self.ui_objects.channel_tabs += [tab]
+            self.ui_objects.channel_name_id.update({ch_config['name']:ch_id})
