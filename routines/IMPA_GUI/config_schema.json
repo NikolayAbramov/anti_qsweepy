@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "hardware_connected": {
+      "type": "boolean"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "vna": {
+            "type": "object",
+            "properties": {
+              "driver_name": {"type": "string"},
+              "class_name": {"type": "string"},
+              "address": {"type": "string"},
+              "is_connected": {"type": "boolean"},
+              "channel": {"type": "integer"},
+              "center": {"type": "number"},
+              "span": {"type": "number"},
+              "points": {"type": "integer"},
+              "bandwidth": {"type": "number"},
+              "power": {"type": "number"}
+            },
+            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "center", "span", "points", "bandwidth", "power"]
+          },
+          "bias_source": {
+            "type": "object",
+            "properties": {
+              "driver_name": {"type": "string"},
+              "class_name": {"type": "string"},
+              "address": {"type": "string"},
+              "is_connected": {"type": "boolean"},
+              "channel": {"type": "integer"},
+              "output": {"type": "boolean"},
+              "current": {"type": "number"},
+              "compliance_voltage": {"type": "number"}
+            },
+            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "output", "current", "compliance_voltage"]
+          },
+          "pump_source": {
+            "type": "object",
+            "properties": {
+              "driver_name": {"type": "string"},
+              "class_name": {"type": "string"},
+              "address": {"type": "string"},
+              "is_connected": {"type": "boolean"},
+              "channel": {"type": "integer"},
+              "frequency": {"type": "number"},
+              "power": {"type": "number"},
+              "output": {"type": "boolean"}
+            },
+            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "frequency", "power", "output"]
+          }
+        },
+        "required": ["name", "vna", "bias_source", "pump_source"]
+      }
+    }
+  },
+  "required": ["hardware_connected", "channels"]
+}
