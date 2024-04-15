@@ -70,20 +70,19 @@ class UiCallbacks:
         else:
             return True
 
-    async def pick_data_folder(self) -> None:
-        result = await local_file_picker('~', multiple=False)
-        if result is not None:
-            try:
-                result = result[0]
-                pth = Path(result)
-                if pth.is_dir():
-                    self.ui_objects.data_folder = str(pth)
-            except Exception:
-                tb.print_exc()
+    async def _channel_dir_file_picker(self, ch_id: int) -> list[str]:
+        tab = self.ui_objects.channel_tabs[ch_id]
+        pth = Path(self.ui_objects.data_folder) / tab.chan.name.replace(' ', '_')
+        if not pth.exists():
+           pth = "~"
+        result = await local_file_picker(pth,
+                                         multiple=False,
+                                         upper_limit=None)
+        return result
 
     async def pick_gain_file(self, ch_id: int) -> None:
         tab = self.ui_objects.channel_tabs[ch_id]
-        result = await local_file_picker('~', multiple=False)
+        result = await self._channel_dir_file_picker(ch_id)
         if result is not None:
             result = result[0]
             try:
@@ -142,8 +141,7 @@ class UiCallbacks:
         tab.gain_file_toolbar_enabled = False
 
     async def pick_bias_sweep_file(self, ch_id: int) -> None:
-        tab = self.ui_objects.channel_tabs[ch_id]
-        result = await local_file_picker('~', multiple=False)
+        result = await self._channel_dir_file_picker(ch_id)
         if result is not None:
             result = result[0]
             self.open_bias_sweep_file(result, ch_id)
