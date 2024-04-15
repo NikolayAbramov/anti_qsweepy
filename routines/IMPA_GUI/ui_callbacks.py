@@ -10,6 +10,7 @@ from file_picker.local_file_picker import local_file_picker
 from hdf5_gain import HDF5GainFile
 from hdf5_bias_sweep import HDF5BiasSweepFile
 import numpy as np
+from pathlib import Path
 
 
 class UiCallbacks:
@@ -169,11 +170,11 @@ class UiCallbacks:
             if not self.update_bias_sweep_plot(ch_id, cb_autoscale):
                 self.close_bias_sweep_file(ch_id)
 
-
     def update_bias_sweep_plot_from_file(self, ch_id: int) -> None:
         tab = self.ui_objects.channel_tabs[ch_id]
         filename = tab.bias_sweep_file.filename
-        self.open_bias_sweep_file(filename, ch_id, log=False, cb_autoscale=False)
+        if filename is not None:
+            self.open_bias_sweep_file(filename, ch_id, log=False, cb_autoscale=False)
 
     def update_bias_sweep_plot(self, ch_id: int, cb_autoscale: bool = False) -> bool:
         tab = self.ui_objects.channel_tabs[ch_id]
@@ -273,7 +274,8 @@ class UiCallbacks:
                 attr = getattr(ch.bias_sweep, f.name)
                 if ds.UIParameter in type(attr).mro() and attr.instrumental:
                     data.update({f.name: attr.value})
-            data.update({'save_path': r'D:\IMPA'})
+            save_path = Path(self.ui_objects.data_folder)/ch.name.replace(' ', '_')
+            data.update({'save_path': str(save_path)})
             if ch.pump_source.is_connected.value:
                 self._queue_command('set_pump_output', (False, ch_id))
             if ch.vna.is_connected.value and ch.pump_source.is_connected.value:

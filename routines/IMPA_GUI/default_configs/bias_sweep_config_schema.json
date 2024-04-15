@@ -20,10 +20,9 @@
               "vna_stop": {"type": "number"},
               "vna_power": {"type": "number"},
               "vna_points": {"type": "integer"},
-              "vna_bandwidth": {"type": "number"},
-              "save_path": {"type": "string"}
+              "vna_bandwidth": {"type": "number"}
             },
-            "required": ["bias_start", "bias_stop", "bias_step", "vna_start", "vna_stop", "vna_power", "vna_points", "vna_bandwidth", "save_path"],
+            "required": ["bias_start", "bias_stop", "bias_step", "vna_start", "vna_stop", "vna_power", "vna_points", "vna_bandwidth"],
             "additionalProperties": false
           }
         },

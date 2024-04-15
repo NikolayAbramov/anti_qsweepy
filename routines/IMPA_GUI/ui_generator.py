@@ -242,7 +242,7 @@ class UiGenerator:
                     .bind_enabled(chan.bias_sweep.is_running, 'enabled') \
                     .bind_text(chan.bias_sweep.is_running, 'str_repr') \
                     .classes('w-28')
-                ui.circular_progress(min = 0, max = 100)\
+                ui.circular_progress(min=0, max=100)\
                     .bind_value_from(chan.bias_sweep, 'progress')\
                     .bind_visibility_from(chan.bias_sweep.is_running, 'value')\
                     .classes('ml-4')

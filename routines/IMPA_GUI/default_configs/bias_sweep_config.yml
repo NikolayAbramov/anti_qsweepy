@@ -10,4 +10,3 @@ channels:
     vna_power: -20
     vna_points: 1000
     vna_bandwidth: 1000
-    save_path: D:IMPA

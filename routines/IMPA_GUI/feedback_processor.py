@@ -104,7 +104,7 @@ class FeedbackProcessor:
 
     def bias_sweep_progress(self, val: float, ch_id: int) -> None:
         ch = self.ui_objects.channel_tabs[ch_id].chan
-        ch.bias_sweep.progress = val
+        ch.bias_sweep.progress = np.round(val)
 
     def update_bias_sweep_plot(self, ch_id: int) -> None:
         self.cb.update_bias_sweep_plot_from_file(ch_id)
