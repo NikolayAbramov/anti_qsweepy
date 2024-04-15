@@ -2,12 +2,14 @@ import queue
 import traceback as tb
 from dataclasses import fields
 from typing import Any
+from pathlib import Path
 
 import data_structures as ds
 import multiprocessing as mp
 from file_picker.local_file_picker import local_file_picker
 from hdf5_gain import HDF5GainFile
 from hdf5_bias_sweep import HDF5BiasSweepFile
+import numpy as np
 
 
 class UiCallbacks:
@@ -66,6 +68,17 @@ class UiCallbacks:
             return False
         else:
             return True
+
+    async def pick_data_folder(self) -> None:
+        result = await local_file_picker('~', multiple=False)
+        if result is not None:
+            try:
+                result = result[0]
+                pth = Path(result)
+                if pth.is_dir():
+                    self.ui_objects.data_folder = str(pth)
+            except Exception:
+                tb.print_exc()
 
     async def pick_gain_file(self, ch_id: int) -> None:
         tab = self.ui_objects.channel_tabs[ch_id]
@@ -134,7 +147,10 @@ class UiCallbacks:
             result = result[0]
             self.open_bias_sweep_file(result, ch_id)
 
-    def open_bias_sweep_file(self, path: str, ch_id: int, log: bool = True) -> None:
+    def open_bias_sweep_file(self, path: str,
+                             ch_id: int,
+                             log: bool = True,
+                             cb_autoscale=True) -> None:
         tab = self.ui_objects.channel_tabs[ch_id]
         old_filename = ''
         if tab.bias_sweep_file is not None:
@@ -150,21 +166,32 @@ class UiCallbacks:
             if log:
                 tab.log.push("Opened bias sweep file:" + path)
             tab.bias_sweep_file_toolbar_enabled = True
-            if not self.update_bias_sweep_plot(ch_id):
+            if not self.update_bias_sweep_plot(ch_id, cb_autoscale):
                 self.close_bias_sweep_file(ch_id)
+
 
     def update_bias_sweep_plot_from_file(self, ch_id: int) -> None:
         tab = self.ui_objects.channel_tabs[ch_id]
         filename = tab.bias_sweep_file.filename
-        self.open_bias_sweep_file(filename, ch_id, log=False)
+        self.open_bias_sweep_file(filename, ch_id, log=False, cb_autoscale=False)
 
-    def update_bias_sweep_plot(self, ch_id: int) -> bool:
+    def update_bias_sweep_plot(self, ch_id: int, cb_autoscale: bool = False) -> bool:
         tab = self.ui_objects.channel_tabs[ch_id]
         data = tab.bias_sweep_file.get_data()
         if data['status']:
             tab.bias_sweep_fig['data'][0]['x'] = data['current']
             tab.bias_sweep_fig['data'][0]['y'] = data['frequency']
             tab.bias_sweep_fig['data'][0]['z'] = data['delay'].tolist()
+            if cb_autoscale:
+                zmin = np.min(data['delay'])
+                zmax = np.max(data['delay'])
+            else:
+                zmin = tab.bias_sweep_cb_min.get_value()
+                zmax = tab.bias_sweep_cb_max.get_value()
+            tab.bias_sweep_fig['data'][0]['zmin'] = zmin
+            tab.bias_sweep_fig['data'][0]['zmax'] = zmax
+            tab.bias_sweep_cb_min.update(zmin)
+            tab.bias_sweep_cb_max.update(zmax)
             tab.bias_sweep_plot.update()
             return True
         else:

@@ -1,0 +1,34 @@
+# IMPA GUI configuration file
+hardware_connected: true
+data_dir: C:\
+channels:
+- name: Channel 0
+  vna:
+    driver_name: Dummy_VNA
+    class_name: NetworkAnalyzer
+    address: Dummy_VNA
+    is_connected: true
+    channel: 0
+    center: 7.0e9
+    span: 2e9
+    points: 1000
+    bandwidth: 1000
+    power: -20
+  bias_source:
+    driver_name: Dummy_CurrentSource
+    class_name: CurrentSource
+    address: Dummy_CurrentSource
+    is_connected: true
+    channel: 0
+    output: true
+    current: 0
+    compliance_voltage: 1
+  pump_source:
+    driver_name: Dummy_Generator
+    class_name: Generator
+    address: Dummy_Generator
+    is_connected: true
+    channel: 0
+    frequency: 14e9
+    power: 0
+    output: true

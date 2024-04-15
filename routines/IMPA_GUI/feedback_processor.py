@@ -79,6 +79,16 @@ class FeedbackProcessor:
     def update_gain_plot(self, data: nt.ArrayLike, ch_id: int) -> None:
         data = np.array(data)
         tab = self.ui_objects.channel_tabs[ch_id]
+        vna = tab.chan.vna
+        if vna.normalize.value and vna.ref_data is not None:
+            if np.min(data[0]) < np.min(vna.ref_data[0]) or \
+                    np.max(data[0]) > np.max(vna.ref_data[0]):
+                vna.normalize.update(False)
+            else:
+                ref = np.interp(data[0], vna.ref_data[0], vna.ref_data[1])
+                data[1] = data[1]-ref
+        else:
+            vna.ref_data = data
         fig = tab.gain_fig
         trace_id = self.ui_objects.gain_plot_traces.vna_s21
         fig['data'][trace_id]['x'] = list(data[0]/1e9)

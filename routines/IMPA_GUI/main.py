@@ -17,7 +17,7 @@ if __name__ == "__main__":
     conf_h.load_config()
 
     ui_cb = UiCallbacks(ui_objects, q_command)
-    ui_gen = UiGenerator(ui_objects, ui_cb)
+    ui_gen = UiGenerator(ui_objects, ui_cb, conf_h)
     fp = FeedbackProcessor(q_feedback, q_command, ui_objects, ui_cb)
 
     ui_gen.create_ui()

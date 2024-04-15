@@ -1,0 +1,24 @@
+#Bias sweep parameters
+channels:
+- name: !!str Channel 0
+  parameters:
+    bias_start: 0
+    bias_stop: 10e-3
+    bias_step:  0.1e-3
+    vna_start: 4e9
+    vna_stop: 8e9
+    vna_power: -20
+    vna_points: 1000
+    vna_bandwidth: 1000
+    save_path: D:IMPA
+- name: Channel 1
+  parameters:
+    bias_start: 0
+    bias_stop: 10e-3
+    bias_step:  0.1e-3
+    vna_start: 4e9
+    vna_stop: 8e9
+    vna_power: -20
+    vna_points: 1000
+    vna_bandwidth: 1000
+    save_path: D:IMPA

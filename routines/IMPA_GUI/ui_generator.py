@@ -2,6 +2,7 @@ from nicegui import ui
 from typing import Callable
 import data_structures as ds
 import ui_callbacks as ui_cb
+import config_handler
 
 
 def validate_float(s: str) -> str | None:
@@ -17,18 +18,15 @@ def validate_float(s: str) -> str | None:
 
 
 class UiGenerator:
-    def __init__(self, ui_objects: ds.UiObjects, cb: ui_cb.UiCallbacks):
+    def __init__(self, ui_objects: ds.UiObjects,
+                 cb: ui_cb.UiCallbacks,
+                 ch: config_handler.ConfigHandler):
         self.ui_objects = ui_objects
         self.cb = cb
+        self.ch = ch
         self.hardware_state = True
 
     def create_ui(self) -> None:
-        @ui.refreshable
-        def stop_run_label():
-            if self.hardware_state:
-                ui.label('Connected').classes('mt-2')
-            else:
-                ui.label('Disconnected').classes('mt-2')
 
         ui.add_head_html('''
             <style>
@@ -42,13 +40,9 @@ class UiGenerator:
 
         ui.page_title('IMPA')
         with ui.row(wrap=False).classes('w-full'):
-            with ui.row(wrap=False).classes('w-72'):
-                ui.label('Hardware:').classes('mt-2')
-                ui.switch('').bind_value(self, 'hardware_state') \
-                    .on('update:model-value', stop_run_label.refresh)
-                stop_run_label()
             with ui.row(wrap=False).classes('w-full'):
-                ui.label('Karpovless IMPA tuning GUI') \
+                #ui.label('Karpovless IMPA tuning GUI') \
+                ui.label('IMPA tuning GUI') \
                     .classes('w-full text-xl text-center mt-2')
 
         with ui.tabs() as tabs:
@@ -58,8 +52,14 @@ class UiGenerator:
             tabs.bind_value(self.ui_objects, 'current_tab')
         with ui.tab_panels(tabs, value=self.ui_objects.channel_tabs[0].chan.name)\
                 .classes('w-full'):
+            # Control tab
             with ui.tab_panel(control_tab):
-                ui.switch('VNA')
+                with ui.column():
+                    ui.switch('VNA')
+                    ui.button('Save configuration', on_click=self.ch.save_config) \
+                        .classes('text-xs mt-1 ml-1') \
+                        .tooltip('')
+
             for ch_id, tab in enumerate(self.ui_objects.channel_tabs):
                 with ui.tab_panel(tab.tab):
                     self._fill_channel_tab(ch_id)
@@ -107,6 +107,18 @@ class UiGenerator:
                     ui.button('Close', on_click=close_bias_sweep_file) \
                         .classes('text-xs mt-2 ml-1') \
                         .bind_enabled(tab, 'bias_sweep_file_toolbar_enabled')
+                    ui.input(label='Colorbar min.',) \
+                        .on('keydown.enter', tab.bias_sweep_cb_min.update_val) \
+                        .on('blur', tab.bias_sweep_cb_min.update_val) \
+                        .bind_value(tab.bias_sweep_cb_min, 'str_repr') \
+                        .bind_enabled(tab, 'bias_sweep_file_toolbar_enabled') \
+                        .classes('text-xs w-20 ml-1 mb-1')
+                    ui.input(label='max.',) \
+                        .on('keydown.enter', tab.bias_sweep_cb_max.update_val) \
+                        .on('blur', tab.bias_sweep_cb_max.update_val) \
+                        .bind_value(tab.bias_sweep_cb_max, 'str_repr') \
+                        .bind_enabled(tab, 'bias_sweep_file_toolbar_enabled') \
+                        .classes('text-xs w-20 ml-1 mb-1')
             # Controls
             with ui.column(wrap=False).classes('w-1/3'):
                 with ui.tabs().props('no-caps dense').classes('text-xs') as tabs:
@@ -152,10 +164,10 @@ class UiGenerator:
         self._create_inp_w_step_and_btns(ch_id, tab.chan.pump_source.power)
         self._create_inp_w_step_and_btns(ch_id, tab.chan.bias_source.current)
         with ui.row(wrap=False):
-            ui.select({0: 'Bias sweep', 1: 'Optimization', 2: 'Normalize'}, value=2) \
-                .classes('text-xs')
-            ui.button('Run').classes('text-xs mt-4 ml-1')
-            ui.button('Abort').classes('text-xs mt-4 ml-1')
+            ui.switch('Normalize') \
+                .bind_value(tab.chan.vna.normalize, 'value') \
+                .bind_enabled(tab.chan.vna.normalize, 'enabled') \
+                .classes('mt-2')
 
     def _fill_vna_tab(self, ch_id: int) -> None:
         ch_tab = self.ui_objects.channel_tabs[ch_id]

@@ -38,13 +38,13 @@ class PhyDevice:
     Attributes:
         driver_name (str): Device driver name within the anti_qsweepy.drivers module
         class_name (str): Device class name within the driver
-        chan (int): Associated device channel
+        chan (int): Associated physical device channel
         dev_inst: Device class instance
-        similar_ui_ch (list): List of UI channels sharing the same device with
-                              same driver_name and associated channel"""
+        similar_ui_ch (list): List of UI channels sharing the same device with the
+                              same driver_name and associated physical channel"""
     driver_name: str
     class_name: str
-    chan: int   # Bind channel of the physical device
+    chan: int
     dev_inst: Any
     similar_ui_ch: list[int]
 
@@ -138,18 +138,19 @@ class HWCommandProcessor:
     def _disconnect_device(self, device_dict: dict[int, PhyDevice],
                            ui_ch: int) -> list[int]:
         ui_ch_list = []
-        if ui_ch in device_dict.keys:
+        if ui_ch in device_dict.keys():
             ui_ch_list = [ui_ch]
             driver_name = device_dict[ui_ch].driver_name
             for existing_ui_ch in device_dict.keys():
                 phy_dev = device_dict[existing_ui_ch]
                 if phy_dev.driver_name == driver_name:
                     ui_ch_list += [existing_ui_ch]
-                    try:
-                        phy_dev.dev_inst.close()
-                    except Exception:
-                        tb.print_exc()
-                    del phy_dev.dev_inst
+                    if phy_dev.dev_inst is not None:
+                        try:
+                            phy_dev.dev_inst.close()
+                            phy_dev.dev_inst = None
+                        except Exception:
+                            tb.print_exc()
         return ui_ch_list
 
     def _stop_read_data_if_running(self, ui_ch: int):
@@ -232,7 +233,7 @@ class HWCommandProcessor:
                 self.q.put({'op': 'disconnect_vna', 'args': (ui_ch,)})
 
     def disconnect_vna(self, ui_ch: int) -> None:
-        status, ui_ch_list = self._disconnect_device(self.vna, ui_ch)
+        ui_ch_list = self._disconnect_device(self.vna, ui_ch)
         for ui_ch in ui_ch_list:
             self.q.put({'op': 'disconnect_vna', 'args': (ui_ch,)})
 

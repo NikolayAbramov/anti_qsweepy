@@ -5,6 +5,9 @@
     "hardware_connected": {
       "type": "boolean"
     },
+    "data_dir": {
+      "type": "string"
+    },
     "channels": {
       "type": "array",
       "items": {
@@ -27,7 +30,8 @@
               "bandwidth": {"type": "number"},
               "power": {"type": "number"}
             },
-            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "center", "span", "points", "bandwidth", "power"]
+            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "center", "span", "points", "bandwidth", "power"],
+            "additionalProperties": false
           },
           "bias_source": {
             "type": "object",
@@ -41,7 +45,8 @@
               "current": {"type": "number"},
               "compliance_voltage": {"type": "number"}
             },
-            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "output", "current", "compliance_voltage"]
+            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "output", "current", "compliance_voltage"],
+            "additionalProperties": false
           },
           "pump_source": {
             "type": "object",
@@ -55,12 +60,15 @@
               "power": {"type": "number"},
               "output": {"type": "boolean"}
             },
-            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "frequency", "power", "output"]
+            "required": ["driver_name", "class_name", "address", "is_connected", "channel", "frequency", "power", "output"],
+            "additionalProperties": false
           }
         },
-        "required": ["name", "vna", "bias_source", "pump_source"]
+        "required": ["name", "vna", "bias_source", "pump_source"],
+        "additionalProperties": false
       }
     }
   },
-  "required": ["hardware_connected", "channels"]
+  "required": ["hardware_connected", "channels"],
+  "additionalProperties": false
 }

@@ -3,6 +3,8 @@ from nicegui import ui
 from typing import Any
 import hdf5_gain
 import hdf5_bias_sweep
+from numpy.typing import ArrayLike
+import numpy as np
 
 
 @dataclass
@@ -39,10 +41,10 @@ class FloatUIParam(UIParameter):
     """Floating point parameter associated with UI input"""
     value:      float = 0
     step:       float = 0.001
-    precision:  float = 0.001
+    precision:  float | None = 0.001
     unit:       float = 1
-    min:        float = 0
-    max:        float = 1
+    min:        float | None = 0
+    max:        float | None = 1
     str_fmt:    str = '{:.3f}'
     step_sel:   dict = field(default_factory=
                              lambda: {0.1: '0.100',0.01: '0.010',0.001: '0.001'})
@@ -67,27 +69,32 @@ class FloatUIParam(UIParameter):
         except ValueError:
             self.update_str()
             return self.value
-
-        if val > self.max:
-            return self.max * self.unit
-        if val < self.min:
-            return self.min * self.unit
-        return round(val / self.precision) * self.precision * self.unit
+        if self.max is not None:
+            if val > self.max:
+                return self.max * self.unit
+        if self.min is not None:
+            if val < self.min:
+                return self.min * self.unit
+        if self.precision is not None:
+            return round(val / self.precision) * self.precision * self.unit
+        return val*self.unit
 
     def inc(self):
         """Returns incremented value"""
         val = self.value + self.step * self.unit
-        val_max = self.max*self.unit
-        if val > val_max:
-            return val_max
+        if self.max is not None:
+            val_max = self.max*self.unit
+            if val > val_max:
+                return val_max
         return val
 
     def dec(self):
         """Returns decremented value"""
         val = self.value - self.step * self.unit
-        val_min = self.min*self.unit
-        if val < val_min:
-            return val_min
+        if self.min is not None:
+            val_min = self.min*self.unit
+            if val < val_min and val_min is not None:
+                return val_min
         return val
 
 @dataclass
@@ -186,6 +193,12 @@ class VNA(Device):
                                                     max=10))
     pump_center_bind: BoolUIParameter = field(default_factory=
                                               lambda: BoolUIParameter(name='Bind pump to vna center',
+                                                                      value=False,
+                                                                      enabled=True,
+                                                                      instrumental=False))
+    ref_data: np.ndarray[float, 2] | None = None
+    normalize: BoolUIParameter = field(default_factory=
+                                              lambda: BoolUIParameter(name='Normalize',
                                                                       value=False,
                                                                       enabled=True,
                                                                       instrumental=False))
@@ -447,7 +460,9 @@ default_bias_sweep_fig ={'data': [{'type': 'heatmap',
                                                 'yref':'container',
                                                 'y':1,
                                                 'ypad':15
-                                                }            
+                                                },
+                                   'zmin': 0,
+                                   'zmax': 1
                                   },
                                   {'type': 'scatter',
                                    'name': 'Trace 1',
@@ -486,6 +501,22 @@ class ChannelTab:
     bias_sweep_plot:   ui.plotly = None
     bias_sweep_fig:    dict = field(default_factory=lambda: dict(default_bias_sweep_fig) )
     bias_sweep_file_toolbar_enabled:bool = False
+    bias_sweep_cb_min: FloatUIParam = field(default_factory=lambda: FloatUIParam(
+        name='Colorbar min',
+        precision=None,
+        unit=1,
+        str_fmt='{:.3e}',
+        min=None,
+        max=None
+    ))
+    bias_sweep_cb_max: FloatUIParam = field(default_factory=lambda: FloatUIParam(
+        name='Colorbar max',
+        precision=None,
+        unit=1,
+        str_fmt='{:.3e}',
+        min=None,
+        max=None
+    ))
     chan:              Channel = field(default_factory=lambda: Channel())
     log:               ui.log = None
 
@@ -493,8 +524,11 @@ class ChannelTab:
 @dataclass
 class UiObjects:
     """Top level container for UI related data objects"""
+    app_name: str = 'IMPA GUI'
+    company_name: str = 'Bomj Systems'
     gain_plot_traces: GainPlotTraces = field(default_factory=lambda: GainPlotTraces())
     current_tab: str = None
     control_tab: ui.tab = None
     channel_tabs: list[ChannelTab] = field(default_factory=lambda: [])
     channel_name_id: dict[str, int] = field(default_factory=lambda: {})
+    data_folder: str = "C:/"
