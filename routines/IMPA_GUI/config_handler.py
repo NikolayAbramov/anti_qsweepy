@@ -125,12 +125,21 @@ class ConfigHandler:
     def save_config(self) -> None:
         yaml_inst = yaml.YAML()
         config = yaml_inst.load(self.default_config_files.config)
+        bias_sweep_config = yaml_inst.load(self.default_config_files.bias_sweep)
         n_ch = len(self.ui_objects.channel_tabs)
         config['data_dir'] = self.ui_objects.data_folder
         for ch_id in range(n_ch):
+            print(ch_id)
             if ch_id:
-                config['channels'] += copy.deepcopy(config['channels'][0])
+                #config['channels'] += copy.deepcopy(config['channels'][0])
+                config['channels'].append(copy.deepcopy(config['channels'][0]))
+                bias_sweep_config['channels'].append(copy.deepcopy(bias_sweep_config['channels'][0]))
             chan = self.ui_objects.channel_tabs[ch_id].chan
             fill_map_from_object(chan, config['channels'][ch_id])
+            bias_sweep = self.ui_objects.channel_tabs[ch_id].chan.bias_sweep
+            print(bias_sweep_config['channels'][ch_id]['name'])
+            bias_sweep_config['channels'][ch_id]['name'] = chan.name
+            fill_map_from_object(bias_sweep, bias_sweep_config['channels'][ch_id]['parameters'])
         yaml_inst.dump(config, self.user_config_files.config)
+        yaml_inst.dump(bias_sweep_config, self.user_config_files.bias_sweep)
 
