@@ -137,6 +137,7 @@ class Device:
                                             str_true='Disconnect',
                                             str_false='Connect')
                                        )
+    locked: bool = False
 
     def set_parameters_enable(self, val: bool):
         """Enable or disable all the parameters except for

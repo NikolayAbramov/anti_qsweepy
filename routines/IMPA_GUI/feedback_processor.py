@@ -58,6 +58,17 @@ class FeedbackProcessor:
         tab.chan.vna.set_parameters_enable(False)
         tab.chan.vna.is_connected.enabled = True
 
+    def _set_global_ui_lock(self, val: bool, except_ch_id: int) -> None:
+        for ch_id in range(len(self.ui_objects.channel_tabs)):
+            ch = self.ui_objects.channel_tabs[ch_id].chan
+            ch.vna.set_parameters_enable(not val)
+            ch.vna.is_connected.enabled = not val
+            ch.vna.locked = val
+            ch.bias_source.set_parameters_enable(not val)
+            ch.pump_source.set_parameters_enable(not val)
+            if ch_id != except_ch_id:
+                ch.bias_sweep.is_running.enabled = not val
+
     def set_vna_power(self, val: float, ch_id: int) -> None:
         self._update_param(self.ui_objects.channel_tabs[ch_id].chan.vna.power, val)
 
@@ -101,6 +112,7 @@ class FeedbackProcessor:
         ch.bias_sweep.is_running.update(True)
         ch.bias_sweep.is_running.enabled = True
         ch.bias_sweep.set_parameters_enable(False)
+        self._set_global_ui_lock(True, ch_id)
 
     def bias_sweep_progress(self, val: float, ch_id: int) -> None:
         ch = self.ui_objects.channel_tabs[ch_id].chan
@@ -125,6 +137,7 @@ class FeedbackProcessor:
             attr = getattr(ch.vna, f.name)
             if ds.UIParameter in type(attr).mro() and attr.instrumental:
                 self._queue_param(ch_id, attr.get_value(), attr)
+        self._set_global_ui_lock(False, ch_id)
 
     def _update_param(self, p: ds.UIParameter, val: Any):
         p.update(val)

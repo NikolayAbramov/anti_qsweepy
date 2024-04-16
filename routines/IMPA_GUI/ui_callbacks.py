@@ -74,7 +74,7 @@ class UiCallbacks:
         tab = self.ui_objects.channel_tabs[ch_id]
         pth = Path(self.ui_objects.data_folder) / tab.chan.name.replace(' ', '_')
         if not pth.exists():
-           pth = "~"
+            pth = "~"
         result = await local_file_picker(pth,
                                          multiple=False,
                                          upper_limit=None)
@@ -236,7 +236,7 @@ class UiCallbacks:
         except KeyError:
             return
         tab = self.ui_objects.channel_tabs[ch_id]
-        status = tab.chan.vna.is_connected.value
+        status = tab.chan.vna.is_connected.value and not tab.chan.vna.locked
         if status and self.q_command.empty():
             self.q_command.put({'op': 'get_vna_data', 'args': (ch_id,)})
 
