@@ -736,6 +736,7 @@ class ChannelTab:
 class UiObjects:
     """Top level container for UI related data objects"""
     app_name: str = 'IMPA GUI'
+    tcp_ip_port: int = 8050
     company_name: str = 'Bomj Systems'
     gain_plot_traces: GainPlotTraces = field(default_factory=lambda: GainPlotTraces())
     current_tab: str = None

@@ -1,4 +1,5 @@
 # IMPA GUI configuration file
+tcp_ip_port: 8081
 hardware_connected: true
 data_dir: C:\
 channels:

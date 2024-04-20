@@ -107,6 +107,7 @@ class ConfigHandler:
         schema = json.load(f_sch)
         validate(config, schema)
         self.ui_objects.data_folder = config['data_dir']
+        self.ui_objects.tcp_ip_port = config['tcp_ip_port']
         for ch_id in range(len(config['channels'])):
             ch_config = config['channels'][ch_id]
             tab = ds.ChannelTab()
@@ -160,6 +161,7 @@ class ConfigHandler:
         optimization_config = yaml_inst.load(self.default_config_files.optimization)
         n_ch = len(self.ui_objects.channel_tabs)
         config['data_dir'] = self.ui_objects.data_folder
+        config['tcp_ip_port'] = self.ui_objects.tcp_ip_port
         for ch_id in range(n_ch):
             if ch_id:
                 config['channels'].append(copy.deepcopy(config['channels'][0]))

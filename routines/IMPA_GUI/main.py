@@ -30,6 +30,6 @@ if __name__ == "__main__":
     ui.timer(0.1, ui_cb.request_vna_data)
     ui.timer(0.01, fp.check_queue)
     
-    ui.run( port=8050, reload=False)
+    ui.run( port=ui_objects.tcp_ip_port, reload=False)
     q_command.put({'op':'terminate'})
     p.join()
