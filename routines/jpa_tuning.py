@@ -153,7 +153,8 @@ class IMPATuner():
             self.pump.freq(2 * x[2])
             self.vna.freq_center_span((x[2], self.target_bw))
         target_gain = 10 ** (self.target_gain / 20)
-        gain_diff = abs(self.vna.read_data() / self.ref) - target_gain
+        gain = abs(self.vna.read_data() / self.ref)
+        gain_diff = gain - target_gain
         f_cent, span = self.vna.freq_center_span()
         snr_gain = self._measure_snr_gain(f_cent + self.detuning)
         c_point = gain_diff[int(len(gain_diff) / 2)]

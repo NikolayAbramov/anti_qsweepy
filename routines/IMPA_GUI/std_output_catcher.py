@@ -1,7 +1,6 @@
 import sys
 import multiprocessing as mp
 
-
 class StdOutputCatcher:
     def __init__(self, q: mp.Queue, ui_ch: int):
         self.ui_ch = ui_ch
