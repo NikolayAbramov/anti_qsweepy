@@ -8,6 +8,7 @@ from typing import Any
 
 import anti_qsweepy.drivers as drv
 from bias_sweep import BiasSweepParameters, BiasSweep
+from optimization import OptimizationParameters, Optimization
 from phy_devices import PhyDevice, BiasSource, PumpSource, VNA
 
 def hw_process(q_command: mp.Queue, q_feedback: mp.Queue) -> None:
@@ -49,6 +50,7 @@ class HWCommandProcessor:
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.vna_read_data_future: Future | None = None  # VNA data acquisition thread
         self.bias_sweeps: dict[int, BiasSweep] = {}
+        self.optimization: dict[int, Optimization] = {}
 
     def _connect_device(self, device_dict: dict[int, PhyDevice],
                         driver_name: str,
@@ -282,3 +284,23 @@ class HWCommandProcessor:
             if self.bias_sweeps[ch_id].future.running():
                 self.bias_sweeps[ch_id].abort()
         self.q.put({'op': 'stop_bias_sweep', 'args': (ch_id,)})
+
+    def start_optimization(self, data: dict) -> None:
+        if data['ch_id'] in self.optimization.keys():
+            if self.optimization[data['ch_id']].future.running():
+                return
+        parameters = OptimizationParameters(**data)
+        op = Optimization(self.bias_source[data['ch_id']],
+                          self.pump_source[data['ch_id']],
+                          self.vna[data['ch_id']],
+                          self.q,
+                          parameters)
+        op.future = self.executor.submit(op.start)
+        self.optimization.update({data['ch_id']: op})
+        self.q.put({'op': 'start_optimization', 'args': (data['ch_id'],)})
+
+    def abort_optimization(self, ch_id) -> None:
+        if ch_id in self.optimization.keys():
+            if self.optimization[ch_id].future.running():
+                self.optimization[ch_id].abort()
+        self.q.put({'op': 'stop_optimization', 'args': (ch_id,)})

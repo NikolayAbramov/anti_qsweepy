@@ -129,6 +129,7 @@ class FeedbackProcessor:
         ch.bias_sweep.is_running.update(False)
         ch.bias_sweep.is_running.enabled = True
         ch.bias_sweep.set_parameters_enable(True)
+        # Restore devices settings
         for f in fields(ch.bias_source):
             attr = getattr(ch.bias_source, f.name)
             if ds.UIParameter in type(attr).mro() and attr.instrumental:
@@ -138,6 +139,25 @@ class FeedbackProcessor:
             if ds.UIParameter in type(attr).mro() and attr.instrumental:
                 self._queue_param(ch_id, attr.get_value(), attr)
         self._set_global_ui_lock(False, ch_id)
+
+    def start_optimization(self, ch_id: int) -> None:
+        ch = self.ui_objects.channel_tabs[ch_id].chan
+        log = self.ui_objects.channel_tabs[ch_id].log
+        ch.optimization.is_running.update(True)
+        ch.optimization.is_running.enabled = True
+        ch.optimization.set_parameters_enable(False)
+        self._set_global_ui_lock(True, ch_id)
+        log.push("Optimization started at {:s}".format(ch.name))
+
+    def stop_optimization(self, ch_id: int) -> None:
+        ch = self.ui_objects.channel_tabs[ch_id].chan
+        log = self.ui_objects.channel_tabs[ch_id].log
+        ch.optimization.is_running.update(False)
+        ch.optimization.is_running.enabled = True
+        ch.optimization.set_parameters_enable(True)
+        # TODO add devices settings download from the instruments
+        self._set_global_ui_lock(False, ch_id)
+        log.push("Optimization stopped at {:s}".format(ch.name))
 
     def _update_param(self, p: ds.UIParameter, val: Any):
         p.update(val)
@@ -165,3 +185,7 @@ class FeedbackProcessor:
                 getattr(self, command['op'])(*command['args'])
             except Exception as err:
                 tb.print_exc()
+
+    def log_push(self, msg: str, ch_id):
+        log = self.ui_objects.channel_tabs[ch_id].log
+        log.push(msg)

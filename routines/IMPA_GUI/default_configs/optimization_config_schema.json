@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "target_frequency": {"type": "string"},
+              "frequency_span": {"type": "number"},
+              "target_gain": {"type": "number"},
+              "target_bandwidth": {"type": "number"},
+              "bias_bond_1": {"type": "number"},
+              "bias_bond_2": {"type": "number"},
+              "pump_power_bond_1": {"type": "number"},
+              "pump_power_bond_2": {"type": "number"},
+              "vna_points": {"type": "integer"},
+              "vna_bandwidth": {"type": "number"},
+              "vna_power": {"type": "number"},
+              "popsize": {"type": "integer"},
+              "minpopsize": {"type": "integer"},
+              "threshold": {"type": "number"},
+              "maxiter": {"type": "integer"},
+              "std_tol": {"type": "number"},
+              "w_cent": {"type": "number"}
+            },
+            "required": ["target_frequency", "frequency_span",
+              "target_gain","target_bandwidth",
+              "bias_bond_1", "bias_bond_2", "pump_power_bond_1",
+              "pump_power_bond_2", "vna_points", "vna_bandwidth",
+              "vna_power", "popsize", "minpopsize", "threshold",
+              "maxiter", "std_tol", "w_cent"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["name", "parameters"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["channels"],
+  "additionalProperties": false
+}

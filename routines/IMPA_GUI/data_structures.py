@@ -11,6 +11,7 @@ import numpy as np
 class UIParameter:
     """Base class for parameters bind to UI inputs"""
     name:       str = "UI parameter"
+    tooltip:    str = None
     method:     str = "set_parameter"
     str_repr:   str = '0'
     enabled:    bool = True
@@ -32,7 +33,8 @@ class UIParameter:
         self.update_str()
 
     def get_value(self) -> Any:
-        """Should produce conditioned value from self.str_repr"""
+        """Should produce conditioned value from self.str_repr
+        but without updating of self.value"""
         return self.value
 
 
@@ -54,16 +56,20 @@ class FloatUIParam(UIParameter):
         self.str_repr = self.str_fmt.format(self.value/self.unit)
 
     def update_val(self) -> None:
+        """Update  self.value from raw self.str_repr and then update self.str_repr
+        with conditioned value"""
         self.value = self.get_value()
         self.update_str()
 
     def update(self, val: float) -> None:
-        """Updates value and string representation"""
+        """Updates self.value and self.str_repr with val"""
         self.value = val
         self.update_str()
 
     def get_value(self) -> float:
-        """Converts string representation into a conditioned value"""
+        """Converts string representation into a conditioned value to be
+        sent to the instrument without changing of self.value which should
+        be updated through feedback from the instrument"""
         try:
             val = float(self.str_repr)
         except ValueError:
@@ -95,6 +101,31 @@ class FloatUIParam(UIParameter):
             val_min = self.min*self.unit
             if val < val_min and val_min is not None:
                 return val_min
+        return val
+
+@dataclass
+class FloatListUIParameter(UIParameter):
+
+    def update_str(self) -> None:
+        """Should update self.str_repr from self.value"""
+        self.str_repr = str(self.value)
+
+    def update_val(self) -> None:
+        """Should update self.value from self.str_repr"""
+        self.value = self.get_value()
+
+    def update(self, val: ArrayLike | float) -> None:
+        """Should update self.value with new value val and also
+         update self.str_repr from it"""
+        self.value = val
+        self.update_str()
+
+    def get_value(self) -> Any:
+        """Should produce conditioned value from self.str_repr without changing
+        self.value"""
+        val = eval(self.str_repr)
+        if not hasattr(val, '__len__'):
+            val = [val]
         return val
 
 @dataclass
@@ -260,8 +291,9 @@ class PumpSource(Device):
                                                      min=0.01,
                                                      max=50))
 
+
 @dataclass
-class BiasSweep:
+class Routine:
     is_running: BoolUIParameter = \
         field(default_factory=
               lambda: BoolUIParameter(
@@ -274,6 +306,20 @@ class BiasSweep:
                 str_true='Stop',
                 str_false='Start'
               ))
+    progress: float = 0
+
+    def set_parameters_enable(self, val: bool):
+        """Enable or disable all the parameters except for
+        self.is_connected"""
+        for f in fields(self):
+            if f.name != 'is_running':
+                attr = getattr(self, f.name)
+                if UIParameter in type(attr).mro():
+                    attr.enabled = val
+
+
+@dataclass
+class BiasSweep(Routine):
     bias_start: FloatUIParam = \
         field(default_factory=
               lambda: FloatUIParam(
@@ -355,17 +401,180 @@ class BiasSweep:
                 max=1000000,
                 value=10000
                 ))
-    save_path: str = ''
-    progress: float = 0
 
-    def set_parameters_enable(self, val: bool):
-        """Enable or disable all the parameters except for
-        self.is_connected"""
-        for f in fields(self):
-            if f.name != 'is_running':
-                attr = getattr(self, f.name)
-                if UIParameter in type(attr).mro():
-                    attr.enabled = val
+
+@dataclass
+class Optimization(Routine):
+    target_frequency: FloatListUIParameter = \
+        field(default_factory=
+              lambda: FloatListUIParameter(
+                  str_repr='7e9',
+                  name='Target freq., GHz',
+                  tooltip="Enter Python expression, arange(start, stop, step) can be used"
+              ))
+    frequency_span: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Freq. span, GHz',
+                precision=0.001,
+                unit=1e9,
+                str_fmt='{:.3f}',
+                min=0,
+                max=10
+                ))
+    target_gain: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Target gain, dB',
+                precision=0.1,
+                unit=1,
+                str_fmt='{:.1f}',
+                min=0,
+                max=100
+                ))
+    target_bandwidth: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Target bw., MHz',
+                precision=1,
+                unit=1e6,
+                str_fmt='{:.0f}',
+                min=1,
+                max=10000
+                ))
+    bias_bond_1: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Bias bonds, mA',
+                precision=0.001,
+                unit=1e-3,
+                str_fmt='{:.3f}',
+                min=-50,
+                max=50
+                ))
+    bias_bond_2: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='',
+                precision=0.001,
+                unit=1e-3,
+                str_fmt='{:.3f}',
+                min=-50,
+                max=50
+                ))
+    pump_power_bond_1: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Pump bonds, dBm',
+                precision=0.01,
+                unit=1,
+                str_fmt='{:.2f}',
+                min=-100,
+                max=20
+                ))
+    pump_power_bond_2: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='',
+                precision=0.01,
+                unit=1,
+                str_fmt='{:.2f}',
+                min=-100,
+                max=20
+                ))
+    vna_points: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='VNA points',
+                precision=1,
+                unit=1,
+                str_fmt='{:.0f}',
+                min=0,
+                max=10000
+                ))
+    vna_bandwidth: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='VNA bandwidth, Hz',
+                precision=1,
+                unit=1,
+                str_fmt='{:.0f}',
+                min=1,
+                max=1000000,
+                value=10000
+                ))
+    vna_power: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='VNA power, dBm',
+                precision=0.01,
+                unit=1,
+                str_fmt='{:.2f}',
+                min=-100,
+                max=20
+                ))
+    # Differential evolution parameters
+    popsize: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Pop. size',
+                precision=1,
+                unit=1,
+                str_fmt='{:.0f}',
+                min=1,
+                max=1000
+                ))
+    minpopsize: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Min. pop. size',
+                precision=1,
+                unit=1,
+                str_fmt='{:.0f}',
+                min=1,
+                max=1000
+                ))
+    threshold: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Threshold',
+                precision=0.1,
+                unit=1,
+                str_fmt='{:.1f}',
+                min=0.1,
+                max=1000
+                ))
+    maxiter: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                  name='Max. iter.',
+                  precision=1,
+                  unit=1,
+                  str_fmt='{:.0f}',
+                  min=1,
+                  max=1000
+              ))
+    std_tol: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                  name='Max. iter.',
+                  precision=0.01,
+                  unit=1,
+                  str_fmt='{:.2f}',
+                  min=0.01,
+                  max=1000
+              ))
+    w_cent: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                  name='W. cent.',
+                  precision=0.01,
+                  unit=1,
+                  str_fmt='{:.2f}',
+                  min=0,
+                  max=1000
+              ))
+
 
 @dataclass
 class Channel:
@@ -375,6 +584,7 @@ class Channel:
     bias_source:    BiasSource = field(default_factory=lambda: BiasSource())
     pump_source:    PumpSource = field(default_factory=lambda: PumpSource())
     bias_sweep:     BiasSweep = field(default_factory=lambda: BiasSweep())
+    optimization:   Optimization = field(default_factory=lambda: Optimization())
 
 
 @dataclass

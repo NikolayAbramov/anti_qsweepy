@@ -230,7 +230,47 @@ class UiGenerator:
                 ui.label("dBm").classes('mt-6')
 
     def _fill_optimization_tab(self, ch_id: int) -> None:
-        pass
+        chan = self.ui_objects.channel_tabs[ch_id].chan
+        start_btn_cb = lambda: self.cb.start_stop_optimization(ch_id)
+        with ui.scroll_area():
+            with ui.column():
+                with ui.row(wrap=False):
+                    # Run/abort button
+                    ui.button('Start', on_click=start_btn_cb) \
+                        .bind_enabled(chan.optimization.is_running, 'enabled') \
+                        .bind_text(chan.optimization.is_running, 'str_repr') \
+                        .classes('w-28')
+                    # Progress indicator
+                    ui.circular_progress(min=0, max=100)\
+                        .bind_value_from(chan.optimization, 'progress')\
+                        .bind_visibility_from(chan.optimization.is_running, 'value')\
+                        .classes('ml-4')
+                with ui.row(wrap=False):
+                    self._create_static_parameter_input(chan.optimization.target_frequency, 'w-28')
+                    self._create_parameter_input(chan.optimization.frequency_span, 'w-28')
+                with ui.row(wrap=False):
+                    self._create_static_parameter_input(chan.optimization.target_gain, 'w-28')
+                    self._create_parameter_input(chan.optimization.target_bandwidth, 'w-28')
+                with ui.row(wrap=False):
+                    self._create_parameter_input(chan.optimization.bias_bond_1, 'w-28')
+                    self._create_parameter_input(chan.optimization.bias_bond_2, 'w-28')
+                with ui.row(wrap=False):
+                    self._create_parameter_input(chan.optimization.pump_power_bond_1, 'w-28')
+                    self._create_parameter_input(chan.optimization.pump_power_bond_2, 'w-28')
+                with ui.row(wrap=False):
+                    self._create_parameter_input(chan.optimization.vna_points, 'w-28')
+                    self._create_parameter_input(chan.optimization.vna_bandwidth, 'w-28')
+                with ui.row(wrap=False):
+                    self._create_parameter_input(chan.optimization.vna_power, 'w-28')
+                with ui.row(wrap=False):
+                    self._create_parameter_input(chan.optimization.popsize, 'w-28')
+                    self._create_parameter_input(chan.optimization.minpopsize, 'w-28')
+                with ui.row(wrap=False):
+                    self._create_parameter_input(chan.optimization.threshold, 'w-28')
+                    self._create_parameter_input(chan.optimization.maxiter, 'w-28')
+                with ui.row(wrap=False):
+                    self._create_parameter_input(chan.optimization.std_tol, 'w-28')
+                    self._create_parameter_input(chan.optimization.w_cent, 'w-28')
 
     def _fill_bias_sweep_tab(self, ch_id: int) -> None:
         chan = self.ui_objects.channel_tabs[ch_id].chan
@@ -260,12 +300,22 @@ class UiGenerator:
                     self._create_parameter_input(chan.bias_sweep.vna_power, 'w-28')
 
     def _create_parameter_input(self, p: ds.UIParameter, classes: str = 'w-20') -> None:
-        ui.input(label=p.name, validation=validate_float)\
+        inp = ui.input(label=p.name)\
             .on('keydown.enter', p.update_val)\
             .on('blur',  p.update_val)\
             .bind_value(p, 'str_repr')\
             .bind_enabled(p, 'enabled')\
             .classes(classes)
+        if p.tooltip is not None:
+            inp.tooltip(p.tooltip)
+
+    def _create_static_parameter_input(self, p: ds.UIParameter, classes: str = 'w-20') -> None:
+        inp = ui.input(label=p.name)\
+            .bind_value(p, 'str_repr')\
+            .bind_enabled(p, 'enabled')\
+            .classes(classes)
+        if p.tooltip is not None:
+            inp.tooltip(p.tooltip)
 
     def _create_inp_w_step_and_btns(self,
                                     ch_id: int,

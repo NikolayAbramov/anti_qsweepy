@@ -264,16 +264,21 @@ class UiCallbacks:
             self._queue_param(ch_id, vna_center, ch_tab.chan.vna.center)
         self._queue_param(ch_id, pump_freq, ch_tab.chan.pump_source.frequency)
 
+    def _mk_routine_data(self, routine: ds.Routine, ch_id: int) -> dict:
+        ch = self.ui_objects.channel_tabs[ch_id].chan
+        data = {'ch_id': ch_id}
+        for f in fields(routine):
+            attr = getattr(routine, f.name)
+            if ds.UIParameter in type(attr).mro() and attr.instrumental:
+                data.update({f.name: attr.value})
+        save_path = Path(self.ui_objects.data_folder)/ch.name.replace(' ', '_')
+        data.update({'save_path': str(save_path)})
+        return data
+
     def start_stop_bias_sweep(self, ch_id: int) -> None:
         ch = self.ui_objects.channel_tabs[ch_id].chan
         if not ch.bias_sweep.is_running.value:
-            data = {'ch_id': ch_id}
-            for f in fields(ch.bias_sweep):
-                attr = getattr(ch.bias_sweep, f.name)
-                if ds.UIParameter in type(attr).mro() and attr.instrumental:
-                    data.update({f.name: attr.value})
-            save_path = Path(self.ui_objects.data_folder)/ch.name.replace(' ', '_')
-            data.update({'save_path': str(save_path)})
+            data = self._mk_routine_data(ch.bias_sweep, ch_id)
             if ch.pump_source.is_connected.value:
                 self._queue_command('set_pump_output', (False, ch_id))
             if ch.vna.is_connected.value and ch.pump_source.is_connected.value:
@@ -283,3 +288,16 @@ class UiCallbacks:
         else:
             if self._queue_command('abort_bias_sweep', (ch_id,)):
                 ch.bias_sweep.is_running.enabled = False
+
+    def start_stop_optimization(self, ch_id: int) -> None:
+        ch = self.ui_objects.channel_tabs[ch_id].chan
+        if not ch.optimization.is_running.value:
+            ch.optimization.target_frequency.update_val()
+            data = self._mk_routine_data(ch.optimization, ch_id)
+            if ch.vna.is_connected.value and ch.pump_source.is_connected.value\
+            and ch.bias_source.is_connected.value:
+                if self._queue_command('start_optimization', (data,)):
+                    ch.optimization.is_running.enabled = False
+        else:
+            if self._queue_command('abort_optimization', (ch_id,)):
+                ch.optimization.is_running.enabled = False

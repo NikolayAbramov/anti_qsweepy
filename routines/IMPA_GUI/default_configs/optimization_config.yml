@@ -1,0 +1,30 @@
+# IMPA optimization routine configuration
+channels:
+  - name: Channel 0
+    parameters:
+      # String expression. Unit: Hz
+      target_frequency: !!str 7e9
+      # Unit: Hz
+      frequency_span: 0
+      # Unit: dB
+      target_gain: 20
+      # Unit: Hz
+      target_bandwidth: 500e6
+      # Unit: A
+      bias_bond_1: 0
+      bias_bond_2: 1e-3
+      # Unit: dBm
+      pump_power_bond_1: -10
+      pump_power_bond_2: 10
+      vna_points: 1000
+      # Unit: Hz
+      vna_bandwidth: 5000
+      # Unit: dBm
+      vna_power: -40
+      # Differential evolution parameters
+      popsize: 50
+      minpopsize: 5
+      threshold: 150
+      maxiter: 100
+      std_tol: 1
+      w_cent: 0
