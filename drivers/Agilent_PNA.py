@@ -11,11 +11,24 @@ class NetworkAnalyzer(VisaInstrument):
         self.instr.write("CALC:PAR:MNUM 1")
         self.instr.write('FORM REAL,32; FORM:BORD SWAP;')
         self.instr.write('SENS:AVER:MODE POIN')
+        self._abort = False
+        self._ch = 0
+
+    def channel(self, val=None):
+        """Set active channel. There is only one channel 0 on this device."""
+        if val is not None:
+            if val != self._ch:
+                raise ValueError('There is only one channel 0 on this device!')
+        return self._ch
+
+    def abort(self) -> None:
+        """Abort read_data() thread"""
+        self._abort = True
 
     def soft_trig_arm(self):
         self.instr.write("TRIG:SOUR MAN")
-        self.instr.write("SENS:AVER:MODE POIN")
         self.instr.write("*ESE 1")
+        self.instr.write("SENS:AVER:MODE POIN")
 
     def read_data(self):
         # Clear status, initiate measurement
@@ -24,12 +37,16 @@ class NetworkAnalyzer(VisaInstrument):
         self.instr.write("*OPC")
         # Set bit in ESR when operation complete
         while int(self.instr.query("*ESR?")) == 0:
+            if self._abort:
+                self._abort = False
+                return array(())
             time.sleep(0.002)
         data = self.instr.query_binary_values("CALC:DATA? SDATA", datatype=u'f')
         data_size = size(data)
         return array(data[0:data_size:2]) + 1.j * array(data[1:data_size:2])
 
     def soft_trig_abort(self):
+        self.instr.write("ABOR")
         self.instr.write("TRIG:SOUR IMM")
 
     def power(self, val=None):
@@ -65,7 +82,11 @@ class NetworkAnalyzer(VisaInstrument):
         return int(self.write_or_query("SENS1:SWE:POIN", val, "{:d}"))
 
     def output(self, val=None):
-        return (self.write_or_query('OUTP', self.parse_on_off_val(val), "{:s}"))
+        val = self.write_or_query('OUTP', self.parse_on_off_val(val), "{:s}")
+        if val == '1':
+            return True
+        else:
+            return False
 
     def freq_points(self):
         return array(self.instr.query_binary_values('SENS1:X?', datatype=u'f'))

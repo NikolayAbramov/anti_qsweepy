@@ -31,7 +31,8 @@ class CurrentSource(VisaInstrument):
             self.ch = val
         return self.ch
 
-    def setpoint(self, val=None):
+    def setpoint(self, val: float|None = None) -> float:
+        """Current setpoint, A."""
         if val is not None:
             V = val * self.resistance[self.ch]
             if abs(V) > self.Vmax * 2:
@@ -45,17 +46,21 @@ class CurrentSource(VisaInstrument):
         return (Vplus - Vminus) * self.resistance[self.ch]
 
     def output(self, val=None):
+        """Output on/off is not supported"""
         if val is None:
-            return 1
+            return True
 
     def limit(self, val=None):
+        """Limit is fixed."""
         if val is None:
             return self.Vmax * 2
 
     def range(self, val=None):
+        """Range is fixed."""
         if val is None:
             return self.Vmax * 2 / self.resistance[self.ch]
 
     def autorange(self, val=None):
+        """Autorange is not supported"""
         if val is None:
-            return 0
+            return False

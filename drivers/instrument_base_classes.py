@@ -1,4 +1,5 @@
 import pyvisa as visa
+from typing import Any
 
 
 class Instrument():
@@ -82,10 +83,13 @@ class VisaInstrument():
         else:
             return self.instr.query(message + "?")
 
-    def parse_on_off_val(self, val):
+    def parse_on_off_val(self, val: Any) -> str:
         if val is not None:
-            if val not in ["on", "off", "ON", "OFF", "1", "0", 1, 0]:
-                raise ValueError("Argument must be either of [\"ON\",\"OFF\",\"1\",\"0\",1,0]")
+            if type(val) is bool:
+                if val: return "1"
+                else: return "0"
+            elif val not in ["on", "off", "ON", "OFF", "1", "0", 1, 0]:
+                raise ValueError("Argument must be bool or either of [\"ON\",\"OFF\",\"1\",\"0\",1,0]")
             if val in [1, 0]:
                 val = str(val)
             elif val.upper() == "ON":
