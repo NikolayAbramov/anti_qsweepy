@@ -2,6 +2,7 @@ import queue
 import traceback as tb
 from dataclasses import fields
 from typing import Any
+import numpy as np
 from pathlib import Path
 
 import data_structures as ds
@@ -9,14 +10,15 @@ import multiprocessing as mp
 from file_picker.local_file_picker import local_file_picker
 from hdf5_gain import HDF5GainFile
 from hdf5_bias_sweep import HDF5BiasSweepFile
-import numpy as np
-from pathlib import Path
+import config_handler as ch
+
 
 
 class UiCallbacks:
-    def __init__(self, ui_objects: ds.UiObjects, q_command: mp.Queue):
+    def __init__(self, ui_objects: ds.UiObjects, conf_h: ch.ConfigHandler, q_command: mp.Queue):
         self.q_command = q_command
         self.ui_objects = ui_objects
+        self.conf_h = conf_h
 
     def _connect_device(self, device: ds.Device, ui_ch: int) -> None:
         self.q_command.put({'op': device.connect_method,
@@ -30,6 +32,22 @@ class UiCallbacks:
         self.q_command.put({'op': device.disconnect_method,
                             'args': (ch_id,)})
 
+    def setup_device(self, dev: ds.Device, ch_id: int) -> None:
+        if dev.is_connected.value:
+            for f in fields(dev):
+                attr = getattr(dev, f.name)
+                if ds.UIParameter in type(attr).mro() and attr.instrumental:
+                    self.queue_param(ch_id, attr.get_value(), attr)
+
+    def setup_devices(self) -> None:
+        num_ch = len(self.ui_objects.channel_tabs)
+        for ch_id in range(num_ch):
+            chan = self.ui_objects.channel_tabs[ch_id].chan
+            for f in fields(chan):
+                attr = getattr(chan, f.name)
+                if ds.Device in type(attr).mro():
+                    self.setup_device(attr, ch_id)
+
     def init_devices(self):
         num_ch = len(self.ui_objects.channel_tabs)
         for ch_id in range(num_ch):
@@ -40,19 +58,32 @@ class UiCallbacks:
                     if attr.is_connected.value:
                         self._connect_device(attr, ch_id)
 
+    def check_devices_initialized(self) -> bool:
+        num_ch = len(self.ui_objects.channel_tabs)
+        for ch_id in range(num_ch):
+            chan = self.ui_objects.channel_tabs[ch_id].chan
+            for f in fields(chan):
+                attr = getattr(chan, f.name)
+                if ds.Device in type(attr).mro():
+                    if not attr.initialized:
+                        return False
+        return True
+
     def change_float_param(self, ch_id: int, p: ds.FloatUIParam) -> None:
-        self._queue_param(ch_id, p.get_value(), p)
+        val = p.get_value()
+        if val != p.value:
+            self.queue_param(ch_id, p.get_value(), p)
 
     def toggle_bool_param(self, ch_id: int, p: ds.BoolUIParameter) -> None:
-        self._queue_param(ch_id, not p.value, p)
+        self.queue_param(ch_id, not p.value, p)
 
     def inc_param(self, ch_id: int, p: ds.FloatUIParam) -> None:
-        self._queue_param(ch_id, p.inc(), p)
+        self.queue_param(ch_id, p.inc(), p)
 
     def dec_param(self, ch_id: int, p: ds.FloatUIParam) -> None:
-        self._queue_param(ch_id, p.dec(), p)
+        self.queue_param(ch_id, p.dec(), p)
 
-    def _queue_param(self, ch_id, val: Any,  p: ds.UIParameter) -> bool:
+    def queue_param(self, ch_id, val: Any, p: ds.UIParameter) -> bool:
         try:
             self.q_command.put({'op': p.method, 'args': (val, ch_id)})
         except queue.Full:
@@ -168,11 +199,12 @@ class UiCallbacks:
             if not self.update_bias_sweep_plot(ch_id, cb_autoscale):
                 self.close_bias_sweep_file(ch_id)
 
-    def update_bias_sweep_plot_from_file(self, ch_id: int) -> None:
+    def update_bias_sweep_plot_from_file(self, ch_id: int, cb_autoscale=True) -> None:
         tab = self.ui_objects.channel_tabs[ch_id]
-        filename = tab.bias_sweep_file.filename
-        if filename is not None:
-            self.open_bias_sweep_file(filename, ch_id, log=False, cb_autoscale=False)
+        if tab.bias_sweep_file is not None:
+            filename = tab.bias_sweep_file.filename
+            self.open_bias_sweep_file(filename, ch_id, log=False,
+                                      cb_autoscale=cb_autoscale)
 
     def update_bias_sweep_plot(self, ch_id: int, cb_autoscale: bool = False) -> bool:
         tab = self.ui_objects.channel_tabs[ch_id]
@@ -226,11 +258,13 @@ class UiCallbacks:
         if ch_tab.chan.vna.pump_center_bind.value:
             p.enabled = False
             val = ch_tab.chan.pump_source.frequency.get_value()/2
-            self._queue_param(ch_id, val, p)
+            self.queue_param(ch_id, val, p)
         else:
             p.enabled = True
 
     def request_vna_data(self):
+        if self.ui_objects.app_state is not ds.AppState.initialization_done:
+            return
         try:
             ch_id = self.ui_objects.channel_name_id[self.ui_objects.current_tab]
         except KeyError:
@@ -243,8 +277,9 @@ class UiCallbacks:
     def set_pump_freq(self, ch_id: int, p: ds.UIParameter) -> None:
         ch_tab = self.ui_objects.channel_tabs[ch_id]
         if ch_tab.chan.vna.pump_center_bind.value:
-            val = ch_tab.chan.pump_source.frequency.get_value() / 2
-            self._queue_param(ch_id, val, ch_tab.chan.vna.center)
+            vna_f_cent = ch_tab.chan.pump_source.frequency.get_value() / 2
+            if vna_f_cent != ch_tab.chan.vna.center.value:
+                self.queue_param(ch_id, vna_f_cent, ch_tab.chan.vna.center)
         self.change_float_param(ch_id, ch_tab.chan.pump_source.frequency)
 
     def inc_pump_freq(self, ch_id: int, p: ds.FloatUIParam) -> None:
@@ -261,8 +296,8 @@ class UiCallbacks:
         ch_tab = self.ui_objects.channel_tabs[ch_id]
         if ch_tab.chan.vna.pump_center_bind.value:
             vna_center = pump_freq/2
-            self._queue_param(ch_id, vna_center, ch_tab.chan.vna.center)
-        self._queue_param(ch_id, pump_freq, ch_tab.chan.pump_source.frequency)
+            self.queue_param(ch_id, vna_center, ch_tab.chan.vna.center)
+        self.queue_param(ch_id, pump_freq, ch_tab.chan.pump_source.frequency)
 
     def _mk_routine_data(self, routine: ds.Routine, ch_id: int) -> dict:
         ch = self.ui_objects.channel_tabs[ch_id].chan
@@ -279,12 +314,12 @@ class UiCallbacks:
         ch = self.ui_objects.channel_tabs[ch_id].chan
         if not ch.bias_sweep.is_running.value:
             data = self._mk_routine_data(ch.bias_sweep, ch_id)
-            if ch.pump_source.is_connected.value:
-                self._queue_command('set_pump_output', (False, ch_id))
             if ch.vna.is_connected.value and ch.pump_source.is_connected.value:
+                self._queue_command('set_pump_output', (False, ch_id))
                 if self._queue_command('start_bias_sweep', (data,)):
                     ch.bias_sweep.progress = 0
                     ch.bias_sweep.is_running.enabled = False
+                    self.conf_h.save_config()
         else:
             if self._queue_command('abort_bias_sweep', (ch_id,)):
                 ch.bias_sweep.is_running.enabled = False

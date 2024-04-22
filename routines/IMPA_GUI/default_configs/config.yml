@@ -10,6 +10,7 @@ channels:
     address: Dummy_VNA
     is_connected: true
     channel: 0
+    measurement_type: !!str S21
     center: 7.0e9
     span: 2e9
     points: 1000

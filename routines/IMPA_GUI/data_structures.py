@@ -5,6 +5,7 @@ import hdf5_gain
 import hdf5_bias_sweep
 from numpy.typing import ArrayLike
 import numpy as np
+import enum
 
 
 @dataclass
@@ -169,6 +170,7 @@ class Device:
                                             str_false='Connect')
                                        )
     locked: bool = False
+    initialized: bool = False
 
     def set_parameters_enable(self, val: bool):
         """Enable or disable all the parameters except for
@@ -186,6 +188,7 @@ class VNA(Device):
         self.is_connected.method = 'vna_connect'
         self.connect_method = 'connect_vna'
         self.disconnect_method = 'disconnect_vna'
+    measurement_type: str = 'S21'
     bandwidth: FloatUIParam = field(default_factory=
                                     lambda: FloatUIParam(name='Bandwidth, Hz',
                                                          method='set_vna_bandwidth',
@@ -731,6 +734,11 @@ class ChannelTab:
     chan:              Channel = field(default_factory=lambda: Channel())
     log:               ui.log = None
 
+@enum.unique
+class AppState(enum.Enum):
+    initial_devices_connection = 1
+    initial_devices_setup = 2
+    initialization_done = 3
 
 @dataclass
 class UiObjects:
@@ -744,3 +752,4 @@ class UiObjects:
     channel_tabs: list[ChannelTab] = field(default_factory=lambda: [])
     channel_name_id: dict[str, int] = field(default_factory=lambda: {})
     data_folder: str = "C:/"
+    app_state: AppState = AppState.initial_devices_connection

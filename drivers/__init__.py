@@ -25,7 +25,8 @@ import anti_qsweepy.drivers.STS60 as STS60
 import anti_qsweepy.drivers.Triton_DR200 as Triton_DR200
 import anti_qsweepy.drivers.Yokogawa_GS200 as Yokogawa_GS200
 
-__all__ = ['Agilent_PNA',
+__all__ = [ 'exceptions',
+            'Agilent_PNA',
             'Agilent_PSG',
             'Anapico_RFSG',
             'Artificial_SMU',

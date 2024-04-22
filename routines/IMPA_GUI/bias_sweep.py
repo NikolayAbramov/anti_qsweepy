@@ -63,9 +63,12 @@ class BiasSweep:
         vna.power(self.params.vna_power)
         vna.sweep_type("LIN")
         # Create data file
+        print("Debug 2")
         Fna = vna.freq_points()
+        print("Debug 3")
         f, d_array, r_array = data_mgmt.extendable_2d(self.params.save_path, Fna, row_descr=row_descr)
         # Report to UI process
+        print("Debug 4")
         self.q.put({'op': 'open_bias_sweep_file', 'args': (self.params.save_path+r'\data.h5', self.params.ch_id)})
         # Spawn auxiliary plotting script in the data dir
         data_mgmt.spawn_plotting_script(self.params.save_path, plotting_script)
@@ -75,6 +78,7 @@ class BiasSweep:
         vna.soft_trig_arm()
         progress = 0
         t_start = time.time()
+        print("Debug 5")
         for bias_val in bias_vals:
             # Perform measurement
             bias_source.setpoint(bias_val)

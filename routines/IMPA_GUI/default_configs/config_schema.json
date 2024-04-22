@@ -20,6 +20,7 @@
               "class_name": {"type": "string"},
               "address": {"type": "string"},
               "is_connected": {"type": "boolean"},
+              "measurement_type": {"type": "string"},
               "channel": {"type": "integer"},
               "center": {"type": "number"},
               "span": {"type": "number"},

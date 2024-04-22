@@ -71,7 +71,8 @@ class UiGenerator:
         browse_gain_file_left = lambda: self.cb.browse_gain_file_left(ch_id)
         browse_gain_file_right = lambda: self.cb.browse_gain_file_right(ch_id)
         pick_bias_sweep_file = lambda: self.cb.pick_bias_sweep_file(ch_id)
-        update_bias_sweep_plot_from_file = lambda: self.cb.update_bias_sweep_plot_from_file(ch_id)
+        update_bias_sweep_plot_from_file = lambda: self.cb.update_bias_sweep_plot_from_file(ch_id,
+                                                                                            cb_autoscale=False)
         close_bias_sweep_file = lambda: self.cb.close_bias_sweep_file(ch_id)
 
         with ui.row(wrap=False).classes('w-full'):
@@ -341,13 +342,17 @@ class UiGenerator:
             dec_float = lambda: dec_callback(ch_id, p)
 
         with ui.row(wrap=False):
-            inp = ui.input(label=p.name, validation=validate_float).bind_value(p, 'str_repr')
-            inp.on('keydown.enter', change_float)
-            inp.bind_enabled(p, 'enabled')
-            inp.classes('w-36')
+            ui.input(label=p.name)\
+                .bind_value(p, 'str_repr')\
+                .on('keydown.enter', change_float) \
+                .on('blur', change_float)\
+                .bind_enabled(p, 'enabled')\
+                .classes('w-36')
             ui.button('+').bind_enabled(p, 'enabled') \
                 .on('click', inc_float, throttle=0.2) \
                 .classes('text-xs ml-0 mr-1 mb-0 mt-3')
+                #.on('mousedown', inc_float, throttle=0.2) \
+                #.on('mouseup', inc_float, throttle=0.2) \
             ui.button('-').bind_enabled(p, 'enabled') \
                 .on('click', dec_float, throttle=0.2) \
                 .classes('text-xs ml-0 mr-1 mb-0 mt-3')

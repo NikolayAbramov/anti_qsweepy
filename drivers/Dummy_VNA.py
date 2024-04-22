@@ -9,6 +9,7 @@ class NetworkAnalyzer:
 
     def __init__(self, *args):
         self._ch = 0
+        self._m_type = 'S21'
         self._power = 0
         self._bandwidth = 1000
         self._center = 7e9
@@ -39,6 +40,13 @@ class NetworkAnalyzer:
         if val is not None:
             self._ch = val
         return self._ch
+
+    def measurement_type(self, val: str | None = None) -> str:
+        if val is not None:
+            if val not in ["S11", "S21", "S22", "S12"]:
+                raise ValueError("Wrong measurement type {:s}!".format(val))
+            self._m_type = val
+        return self._m_type
 
     def soft_trig_arm(self) -> None:
         pass

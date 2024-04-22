@@ -25,6 +25,13 @@ class NetworkAnalyzer(VisaInstrument):
         """Abort read_data() thread"""
         self._abort = True
 
+    def measurement_type(self, val: str | None = None) -> str:
+        if val is not None:
+            if val not in ["S11", "S21", "S22", "S12"]:
+                raise ValueError("Wrong measurement type {:s}!".format(val))
+        self.instr.write("CALC:PAR:MNUM 1")
+        return str(self.write_or_query("CALC:PAR:MOD", val, "{:s}"))
+
     def soft_trig_arm(self):
         self.instr.write("TRIG:SOUR MAN")
         self.instr.write("*ESE 1")

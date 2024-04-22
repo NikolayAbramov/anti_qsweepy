@@ -9,14 +9,14 @@ import multiprocessing as mp
 
 
 if __name__ == "__main__":
-    q_command = mp.Queue(maxsize=20)
-    q_feedback = mp.Queue(maxsize=20)
+    q_command = mp.Queue(maxsize=100)
+    q_feedback = mp.Queue(maxsize=100)
 
     ui_objects = ds.UiObjects()
     conf_h = ConfigHandler(ui_objects)
     conf_h.load_config()
 
-    ui_cb = UiCallbacks(ui_objects, q_command)
+    ui_cb = UiCallbacks(ui_objects, conf_h, q_command)
     ui_gen = UiGenerator(ui_objects, ui_cb, conf_h)
     fp = FeedbackProcessor(q_feedback, q_command, ui_objects, ui_cb)
 
@@ -25,10 +25,10 @@ if __name__ == "__main__":
     #mp.set_start_method('fork')
     p = mp.Process(target=hw_process, args=(q_command, q_feedback))
     p.start()
-    ui_cb.init_devices()
-
-    ui.timer(0.1, ui_cb.request_vna_data)
     ui.timer(0.01, fp.check_queue)
+
+    ui_cb.init_devices()
+    ui.timer(0.1, ui_cb.request_vna_data)
     
     ui.run( port=ui_objects.tcp_ip_port, reload=False)
     q_command.put({'op':'terminate'})

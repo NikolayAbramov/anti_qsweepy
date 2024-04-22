@@ -11,6 +11,7 @@ from bias_sweep import BiasSweepParameters, BiasSweep
 from optimization import OptimizationParameters, Optimization
 from phy_devices import PhyDevice, BiasSource, PumpSource, VNA
 
+
 def hw_process(q_command: mp.Queue, q_feedback: mp.Queue) -> None:
     """ Hardware control process
     """
@@ -30,6 +31,7 @@ def hw_process(q_command: mp.Queue, q_feedback: mp.Queue) -> None:
     except KeyboardInterrupt:
         pass
     print("HW process terminated")
+
 
 @dataclass
 class VNAReadDataFuture:
@@ -72,7 +74,7 @@ class HWCommandProcessor:
                 existing_dev_inst = phy_dev.dev_inst
         if existing_phy_device is not None:
             if existing_phy_device.dev_inst is None:
-                existing_phy_device.dev_inst = self._connect_instr(driver_name, class_name, address)
+                existing_phy_device.dev_inst = self._connect_instr(driver_name, class_name, address, ui_ch)
             existing_phy_device.similar_ui_ch = similar_ui_ch
             device_dict.update({ui_ch: existing_phy_device})
             if existing_phy_device.dev_inst is None:
@@ -80,7 +82,7 @@ class HWCommandProcessor:
             return True, affected_ui_ch
         else:
             if existing_dev_inst is None:
-                existing_dev_inst = self._connect_instr(driver_name, class_name, address)
+                existing_dev_inst = self._connect_instr(driver_name, class_name, address, ui_ch)
             if existing_dev_inst is None:
                 return False, affected_ui_ch
             if ui_ch not in device_dict.keys():
@@ -95,14 +97,30 @@ class HWCommandProcessor:
                 device_dict[ui_ch].dev_inst = existing_dev_inst
         return True, affected_ui_ch
 
-    def _connect_instr(self, driver_name: str, class_name: str, address: str) -> Any:
+    def _connect_instr(self, driver_name: str, class_name: str, address: str, ui_ch: int) -> Any:
         try:
             driver = getattr(drv, driver_name)
             DeviceClass = getattr(driver, class_name)
             return DeviceClass(address)
-        except Exception:
-            tb.print_exc()
+        except drv.exceptions.UnableToConnectError as err:
+            self._report_failed_to_connect(driver_name, class_name, address, ui_ch)
+            self.q.put({'op': 'log_push', 'args': (err.msg, ui_ch)})
             return None
+        except Exception as err:
+            tb.print_exc()
+            self._report_failed_to_connect(driver_name, class_name, address, ui_ch)
+            self.q.put({'op': 'log_push', 'args': (err.args, ui_ch)})
+            return None
+
+    def _report_failed_to_connect(self,driver_name: str, class_name: str, address: str, ui_ch: int) -> None:
+        self.q.put({'op': 'log_push', 'args': ('Failed to connect to the instrument!\n'
+                                               'Driver name: {:s}\n'
+                                               'Class name: {:s}\n'
+                                               'Address: {:s}\n'
+                                               'A following error occurred:'.format(driver_name,
+                                                                                    class_name,
+                                                                                    address),
+                                               ui_ch)})
 
     def _disconnect_device(self, device_dict: dict[int, PhyDevice],
                            ui_ch: int) -> list[int]:
@@ -205,6 +223,22 @@ class HWCommandProcessor:
         ui_ch_list = self._disconnect_device(self.vna, ui_ch)
         for ui_ch in ui_ch_list:
             self.q.put({'op': 'disconnect_vna', 'args': (ui_ch,)})
+
+    def set_vna_measurement_type(self, val: str, ui_ch: int) -> None:
+        if ui_ch in self.vna.keys():
+            phy_dev = self.vna[ui_ch]
+            phy_dev.dev_inst.channel(phy_dev.chan)
+            try:
+                phy_dev.dev_inst.measurement_type(val)
+            except Exception as err:
+                tb.print_exc()
+                self.q.put({'op': 'log_push', 'args': ('Failed to set VNA measurement type {:s}!\n'
+                                                       'A following error occurred:\n'
+                                                       '{:s}'.format(val, err.args),
+                                                       ui_ch)})
+                return
+            for ui_ch in phy_dev.similar_ui_ch:
+                self.q.put({'op': 'set_vna_measurement_type', 'args': (val, ui_ch)})
 
     def set_vna_power(self, val: float, ui_ch: int) -> None:
         if ui_ch in self.vna.keys():
