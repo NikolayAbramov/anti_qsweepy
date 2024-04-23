@@ -67,6 +67,6 @@
       }
     }
   },
-  "required": ["hardware_connected", "channels"],
+  "required": ["hardware_connected", "channels", "tcp_ip_port"],
   "additionalProperties": false
 }

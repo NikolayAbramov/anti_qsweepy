@@ -734,11 +734,12 @@ class ChannelTab:
     chan:              Channel = field(default_factory=lambda: Channel())
     log:               ui.log = None
 
+
 @enum.unique
 class AppState(enum.Enum):
     initial_devices_connection = 1
-    initial_devices_setup = 2
-    initialization_done = 3
+    initialization_done = 2
+
 
 @dataclass
 class UiObjects:

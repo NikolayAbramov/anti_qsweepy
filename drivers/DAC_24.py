@@ -108,8 +108,6 @@ class CurrentSource(VisaInstrument):
     def output(self, val: bool | None = None) -> bool:
         """Output on/off"""
         if val is not None:
-            ch_plus = self._ch_data[self.ch].ch_plus
-            ch_minus = self._ch_data[self.ch].ch_minus
             if not val:
                 # OFF
                 self._ch_data[self.ch].v_plus, self._ch_data[self.ch].v_minus = \
@@ -120,7 +118,7 @@ class CurrentSource(VisaInstrument):
                 # First, check if it's actually off
                 v_plus, v_minus = self._get_difff_voltages(self.ch)
                 if v_plus == 0 and v_minus == 0:
-                    # If it's off then set saved voltages
+                    # If it's off then restore saved voltages
                     self._set_diff_voltages(self._ch_data[self.ch].v_plus, self._ch_data[self.ch].v_minus, self.ch)
                 else:
                     # If it's on then don't touch

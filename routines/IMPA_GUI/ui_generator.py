@@ -349,10 +349,8 @@ class UiGenerator:
                 .bind_enabled(p, 'enabled')\
                 .classes('w-36')
             ui.button('+').bind_enabled(p, 'enabled') \
-                .on('click', inc_float, throttle=0.2) \
-                .classes('text-xs ml-0 mr-1 mb-0 mt-3')
-                #.on('mousedown', inc_float, throttle=0.2) \
-                #.on('mouseup', inc_float, throttle=0.2) \
+                .classes('text-xs ml-0 mr-1 mb-0 mt-3')\
+                .on('click', inc_float, throttle=0.2)
             ui.button('-').bind_enabled(p, 'enabled') \
                 .on('click', dec_float, throttle=0.2) \
                 .classes('text-xs ml-0 mr-1 mb-0 mt-3')

@@ -13,7 +13,6 @@ from hdf5_bias_sweep import HDF5BiasSweepFile
 import config_handler as ch
 
 
-
 class UiCallbacks:
     def __init__(self, ui_objects: ds.UiObjects, conf_h: ch.ConfigHandler, q_command: mp.Queue):
         self.q_command = q_command
