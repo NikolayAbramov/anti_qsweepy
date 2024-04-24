@@ -68,11 +68,13 @@ class UiGenerator:
         tab = self.ui_objects.channel_tabs[ch_id]
         pick_gain_file = lambda: self.cb.pick_gain_file(ch_id)
         close_gain_file = lambda: self.cb.close_gain_file(ch_id)
+        toggle_gain_plot_autoscale = lambda: self.cb.toggle_gain_plot_autoscale(ch_id)
         browse_gain_file_left = lambda: self.cb.browse_gain_file_left(ch_id)
         browse_gain_file_right = lambda: self.cb.browse_gain_file_right(ch_id)
         pick_bias_sweep_file = lambda: self.cb.pick_bias_sweep_file(ch_id)
         update_bias_sweep_plot_from_file = lambda: self.cb.update_bias_sweep_plot_from_file(ch_id,
-                                                                                            cb_autoscale=False)
+                                                                                         cb_autoscale=False)
+        set_operation_point = lambda: self.cb.set_operation_point(ch_id)
         close_bias_sweep_file = lambda: self.cb.close_bias_sweep_file(ch_id)
 
         with ui.row(wrap=False).classes('w-full'):
@@ -80,6 +82,8 @@ class UiGenerator:
             with ui.column().classes('w-1/3'):
                 tab.gain_plot = ui.plotly(tab.gain_fig).classes('mr-2 w-full aspect-square')
                 with ui.row().classes('w-full mt-1'):
+                    ui.switch('Autoscale', on_change=toggle_gain_plot_autoscale)\
+                        .bind_value(tab, 'gain_plot_autoscale')
                     ui.button('', on_click=pick_gain_file, icon='folder') \
                         .classes('text-xs mt-1 ml-1') \
                         .tooltip('Open file')
@@ -90,7 +94,9 @@ class UiGenerator:
                         ui.button('>', on_click=browse_gain_file_right) \
                             .classes('text-xs') \
                             .bind_enabled(tab, 'gain_file_toolbar_enabled')
-                    ui.button('Set').classes('text-xs mt-1 ml-1').bind_enabled(tab, 'gain_file_toolbar_enabled')
+                    ui.button('Set', on_click=set_operation_point)\
+                        .classes('text-xs mt-1 ml-1')\
+                        .bind_enabled(tab, 'gain_file_toolbar_enabled')
                     ui.button('Close', on_click=close_gain_file) \
                         .classes('text-xs mt-1 ml-1') \
                         .bind_enabled(tab, 'gain_file_toolbar_enabled')
@@ -171,69 +177,45 @@ class UiGenerator:
                 .classes('mt-2')
 
     def _fill_vna_tab(self, ch_id: int) -> None:
-        ch_tab = self.ui_objects.channel_tabs[ch_id]
+        ch = self.ui_objects.channel_tabs[ch_id].chan
         # Callbacks
         connect_btn_cb = lambda: self.cb.toggle_vna_connection(ch_id)
-        bandwidth_cb = lambda: self.cb.change_float_param(ch_id, ch_tab.chan.vna.bandwidth)
-        span_cb = lambda: self.cb.change_float_param(ch_id, ch_tab.chan.vna.span)
-        center_cb = lambda: self.cb.change_float_param(ch_id, ch_tab.chan.vna.center)
+        bandwidth_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.bandwidth)
+        span_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.span)
+        center_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.center)
         pump_center_bind_cb = lambda: self.cb.bind_pump_freq_to_vna_center(ch_id)
-        points_cb = lambda: self.cb.change_float_param(ch_id, ch_tab.chan.vna.points)
-        power_cb = lambda: self.cb.change_float_param(ch_id, ch_tab.chan.vna.power)
+        points_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.points)
+        power_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.power)
         with ui.column():
             # Connect/disconnect button
             ui.button('Connect', on_click=connect_btn_cb) \
-                .bind_enabled(ch_tab.chan.vna.is_connected, 'enabled') \
-                .bind_text(ch_tab.chan.vna.is_connected, 'str_repr') \
+                .bind_enabled(ch.vna.is_connected, 'enabled') \
+                .bind_text(ch.vna.is_connected, 'str_repr') \
                 .classes('w-28')
             # Bandwidth input
             with ui.row(wrap=False):
-                ui.input(label='Bandwidth', validation=validate_float) \
-                    .on('keydown.enter', bandwidth_cb)\
-                    .bind_value(ch_tab.chan.vna.bandwidth, 'str_repr')\
-                    .bind_enabled(ch_tab.chan.vna.bandwidth, 'enabled')\
-                    .classes('w-20')
-                ui.label("Hz").classes('mt-6')
+                self._create_instrumental_parameter_input(ch.vna.bandwidth, ch_id)
             # Center input
             with ui.row(wrap=False):
-                ui.input(label='Center', validation=validate_float) \
-                    .on('keydown.enter', center_cb)\
-                    .bind_value(ch_tab.chan.vna.center, 'str_repr')\
-                    .bind_enabled(ch_tab.chan.vna.center, 'enabled')\
-                    .classes('w-20')
-                ui.label("GHz").classes('mt-6')
+                self._create_instrumental_parameter_input(ch.vna.center, ch_id)
                 ui.switch('Bind pump', on_change=pump_center_bind_cb) \
-                    .bind_value(ch_tab.chan.vna.pump_center_bind, 'value')\
-                    .bind_enabled(ch_tab.chan.vna.pump_center_bind, 'enabled')\
+                    .bind_value(ch.vna.pump_center_bind, 'value')\
+                    .bind_enabled(ch.vna.pump_center_bind, 'enabled')\
                     .classes('mt-2')
             # Span input
             with ui.row(wrap=False):
-                ui.input(label='Span', validation=validate_float) \
-                    .on('keydown.enter', span_cb)\
-                    .bind_value(ch_tab.chan.vna.span, 'str_repr')\
-                    .bind_enabled(ch_tab.chan.vna.span, 'enabled')\
-                    .classes('w-20')
-                ui.label("GHz").classes('mt-6')
+                self._create_instrumental_parameter_input(ch.vna.span, ch_id)
             # Number of points input
             with ui.row(wrap=False):
-                ui.input(label='Sweep points', validation=validate_float) \
-                    .on('keydown.enter', points_cb) \
-                    .bind_value(ch_tab.chan.vna.points, 'str_repr') \
-                    .bind_enabled(ch_tab.chan.vna.points, 'enabled') \
-                    .classes('w-20')
+                self._create_instrumental_parameter_input(ch.vna.points, ch_id)
             # Power input
             with ui.row(wrap=False):
-                ui.input(label='Power', validation=validate_float) \
-                    .on('keydown.enter', power_cb) \
-                    .bind_value(ch_tab.chan.vna.power, 'str_repr') \
-                    .bind_enabled(ch_tab.chan.vna.power, 'enabled') \
-                    .classes('w-20')
-                ui.label("dBm").classes('mt-6')
+                self._create_instrumental_parameter_input(ch.vna.power, ch_id)
 
     def _fill_optimization_tab(self, ch_id: int) -> None:
         chan = self.ui_objects.channel_tabs[ch_id].chan
         start_btn_cb = lambda: self.cb.start_stop_optimization(ch_id)
-        with ui.scroll_area():
+        with ui.scroll_area().classes('h-96'):
             with ui.column():
                 with ui.row(wrap=False):
                     # Run/abort button
@@ -242,15 +224,23 @@ class UiGenerator:
                         .bind_text(chan.optimization.is_running, 'str_repr') \
                         .classes('w-28')
                     # Progress indicator
-                    ui.circular_progress(min=0, max=100)\
-                        .bind_value_from(chan.optimization, 'progress')\
+                    ui.spinner()\
                         .bind_visibility_from(chan.optimization.is_running, 'value')\
                         .classes('ml-4')
                 with ui.row(wrap=False):
-                    self._create_static_parameter_input(chan.optimization.target_frequency, 'w-28')
-                    self._create_parameter_input(chan.optimization.frequency_span, 'w-28')
+                    self._create_static_parameter_input(chan.optimization.target_frequencies_list, 'w-28')
+                    ui.select(chan.optimization.target_frequency_mode.variants)\
+                        .classes('ml-2')\
+                        .bind_value(chan.optimization.target_frequency_mode, 'value')\
+                        .bind_enabled(chan.optimization.target_frequency_mode, 'enabled')
                 with ui.row(wrap=False):
+                    self._create_static_parameter_input(chan.optimization.target_frequency_start, 'w-20')
+                    self._create_static_parameter_input(chan.optimization.target_frequency_stop, 'w-20')
+                    self._create_static_parameter_input(chan.optimization.target_frequency_step, 'w-20')
+                with ui.row(wrap=False):
+                    self._create_parameter_input(chan.optimization.frequency_span, 'w-28')
                     self._create_static_parameter_input(chan.optimization.target_gain, 'w-28')
+                with ui.row(wrap=False):
                     self._create_parameter_input(chan.optimization.target_bandwidth, 'w-28')
                 with ui.row(wrap=False):
                     self._create_parameter_input(chan.optimization.bias_bond_1, 'w-28')
@@ -312,6 +302,23 @@ class UiGenerator:
 
     def _create_static_parameter_input(self, p: ds.UIParameter, classes: str = 'w-20') -> None:
         inp = ui.input(label=p.name)\
+            .bind_value(p, 'str_repr')\
+            .bind_enabled(p, 'enabled')\
+            .classes(classes)
+        if p.tooltip is not None:
+            inp.tooltip(p.tooltip)
+
+    def _create_instrumental_parameter_input(self, p: ds.UIParameter, ch_id: int, classes: str = 'w-20') -> None:
+        def callback_1():
+            val = p.get_value()
+            if val != p.value:
+                self.cb.queue_param(ch_id, val, p)
+
+        callback_2 = lambda: self.cb.queue_param(ch_id, p.get_value(), p)
+
+        inp = ui.input(label=p.name)\
+            .on('keydown.enter', callback_2)\
+            .on('blur',  callback_1)\
             .bind_value(p, 'str_repr')\
             .bind_enabled(p, 'enabled')\
             .classes(classes)

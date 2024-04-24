@@ -148,6 +148,36 @@ class UiCallbacks:
             tab.log.push(data['message'])
             return False
 
+    def toggle_gain_plot_autoscale(self, ch_id: int) -> None:
+        tab = self.ui_objects.channel_tabs[ch_id]
+        if not tab.gain_plot_autoscale:
+            S21_trace_id = self.ui_objects.gain_plot_traces.vna_s21
+            gain_trace_id = self.ui_objects.gain_plot_traces.file_gain
+            snr_gain_trace_id = self.ui_objects.gain_plot_traces.file_snr_gain
+            x_range = []
+            y_range = []
+            for trace_id in [S21_trace_id, gain_trace_id, snr_gain_trace_id]:
+                x_data = np.array(tab.gain_fig['data'][trace_id]['x'])
+                y_data = np.array(tab.gain_fig['data'][trace_id]['y'])
+                if len(x_data) and len(y_data):
+                    xmax = np.max(x_data)
+                    xmin = np.min(x_data)
+                    ymax = np.max(y_data)
+                    ymin = np.min(y_data)
+                    if len(x_range) == 0:
+                        x_range = [xmin, xmax]
+                        y_range = [ymin, ymax]
+                    else:
+                        if xmax > x_range[1]: x_range[1] = xmax
+                        if xmin < x_range[0]: x_range[0] = xmin
+                        if ymax > y_range[1]: y_range[1] = ymax
+                        if ymin < y_range[0]: y_range[0] = ymin
+            tab.gain_fig['layout']['xaxis']['range'] = x_range
+            tab.gain_fig['layout']['yaxis']['range'] = y_range
+        tab.gain_fig['layout']['xaxis']['autorange'] = tab.gain_plot_autoscale
+        tab.gain_fig['layout']['yaxis']['autorange'] = tab.gain_plot_autoscale
+        tab.gain_plot.update()
+
     def browse_gain_file_left(self, ch_id: int):
         tab = self.ui_objects.channel_tabs[ch_id]
         if tab.gain_file.backward():
@@ -318,20 +348,66 @@ class UiCallbacks:
                 if self._queue_command('start_bias_sweep', (data,)):
                     ch.bias_sweep.progress = 0
                     ch.bias_sweep.is_running.enabled = False
-                    self.conf_h.save_config()
+                    self.conf_h.save_bias_sweep_config()
         else:
             if self._queue_command('abort_bias_sweep', (ch_id,)):
                 ch.bias_sweep.is_running.enabled = False
 
     def start_stop_optimization(self, ch_id: int) -> None:
-        ch = self.ui_objects.channel_tabs[ch_id].chan
+        tab = self.ui_objects.channel_tabs[ch_id]
+        ch = tab.chan
         if not ch.optimization.is_running.value:
-            ch.optimization.target_frequency.update_val()
+            if ch.optimization.target_frequency_mode.value == 'list':
+                try:
+                    ch.optimization.target_frequencies_list.update_val()
+                except ValueError as err:
+                    tab.log.push("An error occurred while parsing optimization target frequency list.")
+                    tab.log.push(err.args[0])
+                    return
+            elif ch.optimization.target_frequency_mode.value == 'range':
+                start = ch.optimization.target_frequency_start.value
+                stop = ch.optimization.target_frequency_stop.value
+                step = ch.optimization.target_frequency_step.value
+                if step == 0:
+                    tab.log.push("Error: inconsistent target frequency range.")
+                    return
+                step = abs(step)
+                if start > stop:
+                    step = -step
+                if (stop-start) % step == 0:
+                    stop += step
+                ch.optimization.target_frequencies_list.value = np.arange(start, stop, step)
             data = self._mk_routine_data(ch.optimization, ch_id)
-            if ch.vna.is_connected.value and ch.pump_source.is_connected.value\
-            and ch.bias_source.is_connected.value:
-                if self._queue_command('start_optimization', (data,)):
-                    ch.optimization.is_running.enabled = False
+            if not ch.vna.is_connected.value:
+                tab.log.push("Error: can't start optimization because VNA is not connected.")
+                return
+            elif not ch.pump_source.is_connected.value:
+                tab.log.push("Error: can't start optimization because pump source is not connected.")
+                return
+            elif not ch.bias_source.is_connected.value:
+                tab.log.push("Error: can't start optimization because bias source is not connected.")
+                return
+            if self._queue_command('start_optimization', (data,)):
+                ch.optimization.is_running.enabled = False
+                self.conf_h.save_optinization_config()
+            else:
+                tab.log.push("Error: failed to start optimization.")
         else:
             if self._queue_command('abort_optimization', (ch_id,)):
                 ch.optimization.is_running.enabled = False
+
+    def set_operation_point(self, ch_id: int) -> None:
+        tab = self.ui_objects.channel_tabs[ch_id]
+        data = tab.gain_file.get_data()
+        if data['status']:
+            Pp = data['Pp']
+            Fs = data['Fs']*tab.gain_file.f_unit
+            Ib = data['Ib']*tab.gain_file.i_unit
+            Fp = Fs*2
+            self.queue_param(ch_id, Pp, tab.chan.pump_source.power)
+            self.queue_param(ch_id, Fp, tab.chan.pump_source.frequency)
+            self.queue_param(ch_id, Ib, tab.chan.bias_source.current)
+            if tab.chan.vna.pump_center_bind.value:
+                self.queue_param(ch_id, Fs, tab.chan.vna.center)
+        else:
+            tab.log.push(data['message'])

@@ -6,6 +6,7 @@ class StdOutputCatcher:
         self.ui_ch = ui_ch
         self.q = q
         self._stdout = None
+        self._buf = ''
 
     def __enter__(self):
         self._stdout = sys.stdout
@@ -16,4 +17,10 @@ class StdOutputCatcher:
         sys.stdout = self._stdout
 
     def write(self, msg: str) -> None:
-        self.q.put({'op': 'log_push', 'args': (msg, self.ui_ch)})
+        self._buf += msg
+        if msg[-1] == '\n':
+            self.flush()
+
+    def flush(self):
+        self.q.put({'op': 'log_push', 'args': (self._buf, self.ui_ch)})
+        self._buf = ''

@@ -13,7 +13,11 @@
           "parameters": {
             "type": "object",
             "properties": {
-              "target_frequency": {"type": "string"},
+              "target_frequencies_list": {"type": "string"},
+              "target_frequency_start": {"type": "number"},
+              "target_frequency_stop": {"type": "number"},
+              "target_frequency_step": {"type": "number"},
+              "target_frequency_mode": {"type": "string"},
               "frequency_span": {"type": "number"},
               "target_gain": {"type": "number"},
               "target_bandwidth": {"type": "number"},
@@ -31,8 +35,9 @@
               "std_tol": {"type": "number"},
               "w_cent": {"type": "number"}
             },
-            "required": ["target_frequency", "frequency_span",
-              "target_gain","target_bandwidth",
+            "required": ["target_frequencies_list","target_frequency_start",
+              "target_frequency_stop","target_frequency_step","target_frequency_mode",
+              "frequency_span","target_gain","target_bandwidth",
               "bias_bond_1", "bias_bond_2", "pump_power_bond_1",
               "pump_power_bond_2", "vna_points", "vna_bandwidth",
               "vna_power", "popsize", "minpopsize", "threshold",

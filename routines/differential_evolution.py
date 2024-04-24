@@ -253,28 +253,28 @@ class DifferentialEvolutionSolver:
                         "(M, N) where N is the number of parameters and M>5")
 
     def __init__(self, func,
-				 bounds,
-				 args=(),
-                 strategy='best1bin',
-				 maxiter=1000,
-				 maxiter_conv=10,
-				 threshold=150,
-                 popsize=15,
-				 minpopsize=10,
-                 tol=0.01,
-				 std_conv=1,
-				 mutation=(0.5, 1),
-				 recombination=0.7,
-				 seed=None,
-                 maxfun=np.inf,
-				 callback=None,
-				 disp=False,
-				 polish=True,
-                 init='latinhypercube',
-				 atol=0,
-                 constraints=(),
-				 x0=None,
-				 integrality=None):
+                       bounds,
+                       args=(),
+                       strategy='best1bin',
+                       maxiter=1000,
+                       maxiter_conv=10,
+                       threshold=150,
+                       popsize=15,
+                       minpopsize=10,
+                       tol=0.01,
+                       std_conv=1,
+                       mutation=(0.5, 1),
+                       recombination=0.7,
+                       seed=None,
+                       maxfun=np.inf,
+                       callback=None,
+                       disp=False,
+                       polish=True,
+                       init='latinhypercube',
+                       atol=0,
+                       constraints=(),
+                       x0=None,
+                       integrality=None):
         if strategy in self._binomial:
             self.mutation_func = getattr(self, self._binomial[strategy])
         elif strategy in self._exponential:
@@ -651,7 +651,7 @@ class DifferentialEvolutionSolver:
 
             std_en = np.std(self.population_energies)
             if self.disp:
-                print("differential_evolution step %d: f(x)= %g, std = %g, Np = %d"
+                print("Differential evolution step %d: f(x)= %g, std = %g, Np = %d"
                       % (nit, self.population_energies[0], std_en, self.num_population_members))
 
             if self.callback:
@@ -980,6 +980,13 @@ class DifferentialEvolutionSolver:
                                       self.feasible[0],
                                       self.constraint_violation[0]):
                     self._promote_lowest_energy()
+        """
+        if mean_energy > np.mean(self.population_energies):
+            self.improved = True
+        else:        
+            self.improved = False
+        """
+        self._reduce_population()
 
         return self.x, self.population_energies[0]
 

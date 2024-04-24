@@ -19,7 +19,7 @@ class OptimizationParameters:
     ch_id: int
     target_gain: float  # dB
     target_bandwidth: float
-    target_frequency: list[float]
+    target_frequencies_list: list[float]
     frequency_span: float
     bias_bond_1: float
     bias_bond_2: float
@@ -95,7 +95,8 @@ class Optimization:
         f = tables.open_file(self.params.save_path + '\\data.h5', mode='w', title=hdf5_title)
         thumbnail = f.create_table(f.root, 'thumbnail', Thumbnail, "thumbnail").row
         group_n = 0
-        for f_cent in self.params.target_frequency:
+
+        for f_cent in self.params.target_frequencies_list:
             self.tuner.target_freq = f_cent
             with StdOutputCatcher(self.q, self.params.ch_id):
                 op, status = self.tuner.find_gain(popsize=self.params.popsize,
@@ -139,4 +140,13 @@ class Optimization:
 
         f.close()
         file.close()
+        self.q.put({'op': 'set_pump_frequency', 'args': (op.Fp, self.params.ch_id,)})
+        self.q.put({'op': 'set_pump_power', 'args': (op.Pp, self.params.ch_id,)})
+        self.q.put({'op': 'set_bias_current', 'args': (op.I, self.params.ch_id)})
+        self.q.put({'op': 'set_vna_center', 'args': (op.Fs, self.params.ch_id)})
+        center, span = vna.freq_center_span()
+        self.q.put({'op': 'set_vna_span', 'args': (span, self.params.ch_id)})
+        self.q.put({'op': 'set_vna_bandwidth', 'args': ( self.params.vna_bandwidth, self.params.ch_id)})
+        self.q.put({'op': 'set_vna_power', 'args': (self.params.vna_power, self.params.ch_id)})
+        self.q.put({'op': 'set_vna_points', 'args': (self.params.vna_points, self.params.ch_id)})
         self.q.put({'op': 'stop_optimization', 'args': (self.params.ch_id,)})

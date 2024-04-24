@@ -124,6 +124,7 @@ class FeedbackProcessor:
         fig['data'][trace_id]['x'] = list(data[0]/1e9)
         fig['data'][trace_id]['y'] = list(data[1])
         fig['data'][trace_id]['name'] = 'VNA S21'
+        #tab.gain_plot.run_method('Plotly.restyle', (str(tab.gain_plot.id), {}))
         tab.gain_plot.update()
 
     def start_bias_sweep(self, ch_id: int) -> None:

@@ -2,8 +2,14 @@
 channels:
   - name: Channel 0
     parameters:
-      # String expression. Unit: Hz
-      target_frequency: !!str 7e9
+      # String expression. Unit: GHz
+      target_frequencies_list: !!str 7
+      # Unit: GHz
+      target_frequency_start: 7
+      target_frequency_stop: 7.5
+      target_frequency_step: 0.1
+      # 'list' or 'range'
+      target_frequency_mode: list
       # Unit: Hz
       frequency_span: 0
       # Unit: dB

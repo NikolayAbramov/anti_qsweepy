@@ -6,6 +6,7 @@ import hdf5_bias_sweep
 from numpy.typing import ArrayLike
 import numpy as np
 import enum
+import re
 
 
 @dataclass
@@ -30,6 +31,35 @@ class UIParameter:
     def update(self, val: Any) -> None:
         """Should update self.value with new one and also
          update self.str_repr"""
+        self.value = val
+        self.update_str()
+
+    def get_value(self) -> Any:
+        """Should produce conditioned value from self.str_repr
+        but without updating of self.value"""
+        return self.value
+
+@dataclass
+class SelectUIParam(UIParameter):
+    # {value: str_repr}
+    variants: dict = field(default_factory=lambda: {})
+
+    def update_str(self) -> None:
+        """Should update self.str_repr from self.value"""
+        self.str_repr = self.variants[self.value]
+
+    def update_val(self) -> None:
+        """Should update  self.value from self.str_repr"""
+        inv_variants = {v: k for k, v in self.variants.items()}
+        self.value = inv_variants[self.str_repr]
+
+    def update(self, val: Any) -> None:
+        """Should update self.value with val and also
+         update self.str_repr"""
+        if type(val) is str:
+            val = val.lower()
+        if val not in self.variants.keys():
+            raise ValueError('Value not allowed!')
         self.value = val
         self.update_str()
 
@@ -71,6 +101,9 @@ class FloatUIParam(UIParameter):
         """Converts string representation into a conditioned value to be
         sent to the instrument without changing of self.value which should
         be updated through feedback from the instrument"""
+        if len(self.str_repr) > 10:
+            self.update_str()
+            return self.value
         try:
             val = float(self.str_repr)
         except ValueError:
@@ -104,8 +137,16 @@ class FloatUIParam(UIParameter):
                 return val_min
         return val
 
+
 @dataclass
 class FloatListUIParameter(UIParameter):
+    """List parameter that parses a string of comma separated numbers."""
+    value:      list[float] = field(default_factory=lambda: [])
+    precision:  float | None = 0.001
+    unit:       float = 1
+    min:        float | None = 0
+    max:        float | None = 1
+    str_fmt:    str = '{:g}'
 
     def update_str(self) -> None:
         """Should update self.str_repr from self.value"""
@@ -124,10 +165,20 @@ class FloatListUIParameter(UIParameter):
     def get_value(self) -> Any:
         """Should produce conditioned value from self.str_repr without changing
         self.value"""
-        val = eval(self.str_repr)
-        if not hasattr(val, '__len__'):
-            val = [val]
-        return val
+        # Check if the input string contains only allowed characters
+        if len(self.str_repr) > 50:
+            raise ValueError("String is too long!")
+        if not re.match(r'^[-+eE\d.,\s]+$', self.str_repr):
+            raise ValueError("Invalid characters in the string!")
+        tokens = self.str_repr.split(',')
+        res = []
+        for token in tokens:
+            res += [float(token)]
+            if res[-1] > self.max or res[-1] < self.min:
+                raise ValueError("Value is out of range!")
+            res[-1] = self.unit * res[-1]
+        return res
+
 
 @dataclass
 class BoolUIParameter(UIParameter):
@@ -142,9 +193,16 @@ class BoolUIParameter(UIParameter):
         else:
             self.str_repr = self.str_false
 
-    def update(self, val: bool) -> None:
-        self.value = val
-        self.update_str()
+    def update(self, val: bool | str) -> None:
+        if type(val) == bool:
+            self.value = val
+            self.update_str()
+        elif type(val) == str:
+            val = val.lower()
+            if val not in [self.str_false.lower(), self.str_true.lower()]:
+                raise ValueError('Invalid string!')
+            self.value = val == self.str_true.lower()
+            self.update_str()
 
     def get_value(self) -> bool:
         return self.value
@@ -237,6 +295,7 @@ class VNA(Device):
                                                                       value=False,
                                                                       enabled=True,
                                                                       instrumental=False))
+
 
 @dataclass
 class BiasSource(Device):
@@ -408,13 +467,57 @@ class BiasSweep(Routine):
 
 @dataclass
 class Optimization(Routine):
-    target_frequency: FloatListUIParameter = \
+    target_frequencies_list: FloatListUIParameter = \
         field(default_factory=
               lambda: FloatListUIParameter(
-                  str_repr='7e9',
-                  name='Target freq., GHz',
-                  tooltip="Enter Python expression, arange(start, stop, step) can be used"
+                  str_repr='7',
+                  name='Target freq. list, GHz',
+                  tooltip="Enter comma separated numbers",
+                  unit=1e9,
+                  min=0,
+                  max=50
               ))
+    target_frequency_start: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='Start',
+                precision=0.001,
+                unit=1e9,
+                str_fmt='{:.3f}',
+                min=0,
+                max=50,
+                instrumental=False
+                ))
+    target_frequency_stop: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='stop',
+                precision=0.001,
+                unit=1e9,
+                str_fmt='{:.3f}',
+                min=0,
+                max=50,
+                instrumental=False
+                ))
+    target_frequency_step: FloatUIParam = \
+        field(default_factory=
+              lambda: FloatUIParam(
+                name='step, Ghz',
+                precision=0.001,
+                unit=1e9,
+                str_fmt='{:.3f}',
+                min=0,
+                max=10,
+                instrumental=False
+                ))
+    target_frequency_mode: SelectUIParam =\
+        field(default_factory=
+              lambda: SelectUIParam(
+                  name='Mode',
+                  variants={'list': 'List', 'range': 'Range'},
+                  value='list',
+                  enabled=True,
+                  instrumental=False))
     frequency_span: FloatUIParam = \
         field(default_factory=
               lambda: FloatUIParam(
@@ -560,7 +663,7 @@ class Optimization(Routine):
     std_tol: FloatUIParam = \
         field(default_factory=
               lambda: FloatUIParam(
-                  name='Max. iter.',
+                  name='Std. tol.',
                   precision=0.01,
                   unit=1,
                   str_fmt='{:.2f}',
@@ -622,10 +725,6 @@ default_gain_fig ={'data': [{'type': 'scatter',
                             ],
               'layout': {
                         'margin': {'l': 0, 'r': 0, 't': 0, 'b': 0},
-                        #'width': 350,
-                        #'height':350,
-                        #'plot_bgcolor': '#E5ECF6',
-                        #'title':{'text':'Title'},
                         'annotations':[{'xanchor':'center',
                                         'yanchor':'bottom',
                                         'xref':'paper',
@@ -643,13 +742,13 @@ default_gain_fig ={'data': [{'type': 'scatter',
                                   'yanchor':'top',
                                   'xref':'paper',
                                    'yref':'paper'},
-                        'xaxis': {#'range':[0,5],
+                        'xaxis': {'range': [],
                                   'title':'Frequency, GHz',
                                   'automargin':True,      
                                   'gridcolor': 'black',
                                   'autorange': True,
                                   'showline': True},
-                        'yaxis': {'range':[0,30],
+                        'yaxis': {'range': [],
                                   'title':'Gain, dB',
                                   'automargin':True,  
                                   'gridcolor': 'black',
@@ -710,7 +809,8 @@ class ChannelTab:
     gain_plot:         ui.plotly = None
     gain_file:         hdf5_gain.HDF5GainFile = None
     gain_fig:          dict = field(default_factory=lambda: dict(default_gain_fig) )
-    gain_file_toolbar_enabled:bool = False
+    gain_file_toolbar_enabled: bool = False
+    gain_plot_autoscale: bool = True
     bias_sweep_file:   hdf5_bias_sweep.HDF5BiasSweepFile = None
     bias_sweep_plot:   ui.plotly = None
     bias_sweep_fig:    dict = field(default_factory=lambda: dict(default_bias_sweep_fig) )

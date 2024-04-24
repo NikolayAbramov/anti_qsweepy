@@ -23,7 +23,12 @@ def config_obj_from_dict(o: Any, d: dict) -> None:
             elif ds.UIParameter in type(attr).mro():
                 # If the parameter class is a child class of ds.UIParameter
                 # than use appropriate methods to set it up
-                attr.update(d[key])
+                try:
+                    attr.update(d[key])
+                except ValueError as err:
+                    print('Got ValueError while parsing configuration file for {0} at the entry {1}={2}'\
+                          .format(type(o), key, d[key]))
+                    print(err.args)
             else:
                 # If the parameter is a simple generic then just pass value
                 setattr(o, key, d[key])
@@ -138,6 +143,18 @@ class ConfigHandler:
         f.close()
         f_sch.close()
 
+    def save_bias_sweep_config(self) -> None:
+        yaml_inst = yaml.YAML()
+        bias_sweep_config = yaml_inst.load(self.default_config_files.bias_sweep)
+        n_ch = len(self.ui_objects.channel_tabs)
+        for ch_id in range(n_ch):
+            if ch_id:
+                bias_sweep_config['channels'].append(copy.deepcopy(bias_sweep_config['channels'][0]))
+            bias_sweep = self.ui_objects.channel_tabs[ch_id].chan.bias_sweep
+            bias_sweep_config['channels'][ch_id]['name'] = self.ui_objects.channel_tabs[ch_id].chan.name
+            fill_map_from_object(bias_sweep, bias_sweep_config['channels'][ch_id]['parameters'])
+        yaml_inst.dump(bias_sweep_config, self.user_config_files.bias_sweep)
+
     def load_optimization_config(self) -> None:
         f = open(self.user_config_files.optimization)
         config = yaml.load(f, yaml.Loader)#, yaml.CLoader)
@@ -153,6 +170,18 @@ class ConfigHandler:
             config_obj_from_dict(obj, ch_data['parameters'])
         f.close()
         f_sch.close()
+
+    def save_optinization_config(self) -> None:
+        yaml_inst = yaml.YAML()
+        optimization_config = yaml_inst.load(self.default_config_files.optimization)
+        n_ch = len(self.ui_objects.channel_tabs)
+        for ch_id in range(n_ch):
+            if ch_id:
+                optimization_config['channels'].append(copy.deepcopy(optimization_config['channels'][0]))
+            optimization = self.ui_objects.channel_tabs[ch_id].chan.optimization
+            optimization_config['channels'][ch_id]['name'] = self.ui_objects.channel_tabs[ch_id].chan.name
+            fill_map_from_object(optimization, optimization_config['channels'][ch_id]['parameters'])
+        yaml_inst.dump(optimization_config, self.user_config_files.optimization)
 
     def save_config(self) -> None:
         yaml_inst = yaml.YAML()
@@ -173,6 +202,7 @@ class ConfigHandler:
             bias_sweep_config['channels'][ch_id]['name'] = chan.name
             fill_map_from_object(bias_sweep, bias_sweep_config['channels'][ch_id]['parameters'])
             optimization = self.ui_objects.channel_tabs[ch_id].chan.optimization
+            optimization_config['channels'][ch_id]['name'] = self.ui_objects.channel_tabs[ch_id].chan.name
             fill_map_from_object(optimization, optimization_config['channels'][ch_id]['parameters'])
         yaml_inst.dump(config, self.user_config_files.config)
         yaml_inst.dump(bias_sweep_config, self.user_config_files.bias_sweep)
