@@ -672,7 +672,7 @@ class DifferentialEvolutionSolver:
                 else:
                     iter_cnt = 0
 
-            if iter_cnt > self.maxiter_conv:
+            if iter_cnt >= self.maxiter_conv:
                 break
 
             # if std_en < std_tol:
