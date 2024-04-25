@@ -96,9 +96,12 @@ class Optimization:
         thumbnail = f.create_table(f.root, 'thumbnail', Thumbnail, "thumbnail").row
         group_n = 0
 
-        for f_cent in self.params.target_frequencies_list:
+        for i, f_cent in enumerate(self.params.target_frequencies_list):
             self.tuner.target_freq = f_cent
             with StdOutputCatcher(self.q, self.params.ch_id):
+                print("Target frequency point {0} of {1}: {2} GHz".format(i+1,
+                                                                          len(self.params.target_frequencies_list),
+                                                                          f_cent/1e9))
                 op, status = self.tuner.find_gain(popsize=self.params.popsize,
                                                  minpopsize=self.params.minpopsize,
                                                  tol=0.01,

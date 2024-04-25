@@ -39,6 +39,7 @@ class UIParameter:
         but without updating of self.value"""
         return self.value
 
+
 @dataclass
 class SelectUIParam(UIParameter):
     # {value: str_repr}
@@ -701,6 +702,13 @@ class GainPlotTraces:
     file_gain: int = 2
     file_snr_gain: int = 3
 
+
+@dataclass
+class BiasSweepPlotTraces:
+    sweep_data: int = 0
+    operation_point_overlay: int = 1
+    gain_file_points_overlay: int = 2
+
 default_gain_fig_data = {   'type': 'scatter',
                             'name': 'Trace 1',
                             'x': [],
@@ -778,9 +786,18 @@ default_bias_sweep_fig ={'data': [{'type': 'heatmap',
                                    'zmax': 1
                                   },
                                   {'type': 'scatter',
-                                   'name': 'Trace 1',
+                                   'name': 'Operation point',
+                                   'mode': 'markers',
+                                   'marker': {'symbol': 'cross',
+                                              'size': 10},
                                    'x': [],
-                                   'y': []}],
+                                   'y': []},
+                                  {'type': 'scatter',
+                                   'name': 'Gain file operation points',
+                                   'mode': 'markers',
+                                   'x': [],
+                                   'y': []},
+                                  ],
               'layout': {
                         'margin': {'l': 0, 'r': 0, 't': 0, 'b': 0},
                         #'width': 350,
@@ -797,7 +814,14 @@ default_bias_sweep_fig ={'data': [{'type': 'heatmap',
                                   'automargin':True,  
                                   'gridcolor': 'black',
                                   'autorange': True,
-                                  'showline': True}
+                                  'showline': True},
+                        'legend':{'visible': True,
+                                  'x': 0,
+                                  'y': 1,
+                                  'xanchor': 'left',
+                                  'yanchor': 'top',
+                                  'xref': 'paper',
+                                  'yref': 'paper'}
                         }
              }
 
@@ -848,6 +872,7 @@ class UiObjects:
     tcp_ip_port: int = 8050
     company_name: str = 'Bomj Systems'
     gain_plot_traces: GainPlotTraces = field(default_factory=lambda: GainPlotTraces())
+    bias_sweep_plot_traces: BiasSweepPlotTraces = field(default_factory=lambda: BiasSweepPlotTraces())
     current_tab: str = None
     control_tab: ui.tab = None
     channel_tabs: list[ChannelTab] = field(default_factory=lambda: [])

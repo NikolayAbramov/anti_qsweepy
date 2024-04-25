@@ -239,17 +239,34 @@ class UiCallbacks:
         tab = self.ui_objects.channel_tabs[ch_id]
         data = tab.bias_sweep_file.get_data()
         if data['status']:
-            tab.bias_sweep_fig['data'][0]['x'] = data['current']
-            tab.bias_sweep_fig['data'][0]['y'] = data['frequency']
-            tab.bias_sweep_fig['data'][0]['z'] = data['delay'].tolist()
+            trace = self.ui_objects.bias_sweep_plot_traces.sweep_data
+            tab.bias_sweep_fig['data'][trace]['x'] = data['current']
+            tab.bias_sweep_fig['data'][trace]['y'] = data['frequency']
+            tab.bias_sweep_fig['data'][trace]['z'] = data['delay'].tolist()
+            # Operation point overlay
+            overlay_trace = self.ui_objects.bias_sweep_plot_traces.operation_point_overlay
+            tab.bias_sweep_fig['data'][overlay_trace]['x'] = \
+                [tab.chan.bias_source.current.value/tab.bias_sweep_file.i_unit]
+            tab.bias_sweep_fig['data'][overlay_trace]['y'] = \
+                [tab.chan.pump_source.frequency.value/2/tab.bias_sweep_file.f_unit]
+            # Gain file overlay
+            if tab.gain_file is not None:
+                x_overlay = []
+                y_overlay = []
+                for record in tab.gain_file.root.thumbnail:
+                    x_overlay += [record['I']/tab.gain_file.i_unit]
+                    y_overlay += [record['Fs']/tab.gain_file.f_unit]
+                overlay_trace = self.ui_objects.bias_sweep_plot_traces.gain_file_points_overlay
+                tab.bias_sweep_fig['data'][overlay_trace]['x'] = x_overlay
+                tab.bias_sweep_fig['data'][overlay_trace]['y'] = y_overlay
             if cb_autoscale:
                 zmin = np.min(data['delay'])
                 zmax = np.max(data['delay'])
             else:
                 zmin = tab.bias_sweep_cb_min.get_value()
                 zmax = tab.bias_sweep_cb_max.get_value()
-            tab.bias_sweep_fig['data'][0]['zmin'] = zmin
-            tab.bias_sweep_fig['data'][0]['zmax'] = zmax
+            tab.bias_sweep_fig['data'][trace]['zmin'] = zmin
+            tab.bias_sweep_fig['data'][trace]['zmax'] = zmax
             tab.bias_sweep_cb_min.update(zmin)
             tab.bias_sweep_cb_max.update(zmax)
             tab.bias_sweep_plot.update()

@@ -66,14 +66,14 @@ class HDF5GainFile(File):
                     'status':True,
                     'message': 'Success!'}
         
-    def forward(self)->None:
+    def forward(self) -> bool:
         self.n_records = len(self.root.thumbnail)
         if self.group_n < self.n_records-1:
             self.group_n += 1
             return True
         return False            
-	
-    def backward(self)->None:
+
+    def backward(self) -> bool:
         self.n_records = len(self.root.thumbnail)
         if self.group_n > 0:
             self.group_n -= 1

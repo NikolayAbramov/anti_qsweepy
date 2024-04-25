@@ -627,6 +627,7 @@ class DifferentialEvolutionSolver:
                 self._calculate_population_feasibilities(self.population))
 
             # only work out population energies for feasible solutions
+            print("Preparing initial population...")
             self.population_energies[self.feasible] = (
                 self._calculate_population_energies(
                     self.population[self.feasible]))
@@ -1076,13 +1077,11 @@ class DifferentialEvolutionSolver:
     """
 
     def _reduce_population(self):
-        num_extra_members = 0
         if self.num_population_members > self.min_pop_membes:
-
             idxs = np.argwhere(self.population_energies > self.threshold).T[0]
-
             if len(idxs) > 0:
-                print("Number of weak members:", len(idxs))
+                print("Number of weak members ot of a total {0}: {1}".format(
+                    len(self.population_energies), len(idxs)))
                 self.population = np.delete(self.population, idxs, axis=0)
                 self.population_energies = np.delete(self.population_energies, idxs)
                 self.feasible = np.delete(self.feasible, idxs)
