@@ -253,6 +253,7 @@ class IMPATuner():
         self.bias.setpoint(op.I)
         self.pump.freq(op.Fp)
         self.pump.power(op.Pp)
+        self.vna.sweep_type('lin')
         span = self.vna.freq_center_span()[1]
         self.vna.freq_center_span((op.Fs, span))
 

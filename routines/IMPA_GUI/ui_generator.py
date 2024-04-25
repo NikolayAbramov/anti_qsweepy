@@ -143,7 +143,7 @@ class UiGenerator:
                     with ui.tab_panel(sweep_tab):
                         self._fill_bias_sweep_tab(ch_id)
         # Log
-        tab.log = ui.log(max_lines=100).classes('w-full h-30')
+        tab.log = ui.log(max_lines=500).classes('w-full h-30')
 
     def _fill_control_tab(self, ch_id: int) -> None:
         tab = self.ui_objects.channel_tabs[ch_id]
@@ -234,12 +234,12 @@ class UiGenerator:
                         .bind_value(chan.optimization.target_frequency_mode, 'value')\
                         .bind_enabled(chan.optimization.target_frequency_mode, 'enabled')
                 with ui.row(wrap=False):
-                    self._create_static_parameter_input(chan.optimization.target_frequency_start, 'w-20')
-                    self._create_static_parameter_input(chan.optimization.target_frequency_stop, 'w-20')
-                    self._create_static_parameter_input(chan.optimization.target_frequency_step, 'w-20')
+                    self._create_parameter_input(chan.optimization.target_frequency_start, 'w-20')
+                    self._create_parameter_input(chan.optimization.target_frequency_stop, 'w-20')
+                    self._create_parameter_input(chan.optimization.target_frequency_step, 'w-20')
                 with ui.row(wrap=False):
                     self._create_parameter_input(chan.optimization.frequency_span, 'w-28')
-                    self._create_static_parameter_input(chan.optimization.target_gain, 'w-28')
+                    self._create_parameter_input(chan.optimization.target_gain, 'w-28')
                 with ui.row(wrap=False):
                     self._create_parameter_input(chan.optimization.target_bandwidth, 'w-28')
                 with ui.row(wrap=False):

@@ -20,6 +20,9 @@ class Generator:
     def channel(self, val = None):
         return self._query_or_write('_ch', val)
 
+    def close(self):
+        pass
+
     def power(self, val: float = None) -> float:
         return self._query_or_write('power', val)
 

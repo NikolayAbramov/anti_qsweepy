@@ -782,6 +782,7 @@ default_bias_sweep_fig ={'data': [{'type': 'heatmap',
                                                 'y':1,
                                                 'ypad':15
                                                 },
+                                    'colorscale':'Viridis',
                                    'zmin': 0,
                                    'zmax': 1
                                   },
