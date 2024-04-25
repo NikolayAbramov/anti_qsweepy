@@ -1,4 +1,5 @@
 import multiprocessing as mp
+import time
 import traceback as tb
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
@@ -337,4 +338,10 @@ class HWCommandProcessor:
         if ch_id in self.optimization.keys():
             if self.optimization[ch_id].future.running():
                 self.optimization[ch_id].abort()
+                timeout = 10
+                t0 = time.time()
+                while self.optimization[ch_id].future.running():
+                    time.sleep(0.01)
+                    if time.time() - t0 > timeout:
+                        break
         self.q.put({'op': 'stop_optimization', 'args': (ch_id,)})
