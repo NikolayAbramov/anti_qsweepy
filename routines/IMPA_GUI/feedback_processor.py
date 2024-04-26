@@ -100,6 +100,7 @@ class FeedbackProcessor:
     def set_vna_center(self, val: float, ch_id: int) -> None:
         vna = self.ui_objects.channel_tabs[ch_id].chan.vna
         vna.center.update(val)
+        vna.center.confirmed = True
         if not vna.pump_center_bind.value:
             vna.center.enabled = True
 
@@ -182,10 +183,12 @@ class FeedbackProcessor:
     def _update_param(self, p: ds.UIParameter, val: Any):
         p.update(val)
         p.enabled = True
+        p.confirmed = True
 
     def check_queue(self) -> None:
         if self.ui_objects.app_state is ds.AppState.initial_devices_connection:
             if self.cb.check_devices_initialized():
+                print("Setup")
                 self.cb.setup_devices()
                 self.ui_objects.app_state = ds.AppState.initialization_done
 

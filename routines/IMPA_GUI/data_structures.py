@@ -19,6 +19,7 @@ class UIParameter:
     enabled:    bool = True
     value:      Any = None
     instrumental: bool = True
+    confirmed: bool = False
 
     def update_str(self) -> None:
         """Should update self.str_repr from self.value"""
@@ -681,6 +682,20 @@ class Optimization(Routine):
                   min=0,
                   max=1000
               ))
+
+    def target_frequency_mode_change(self) -> None:
+        """on_change callback for target_frequency_mode selector.
+         Blocks unused inputs based on target_frequency_mode.value."""
+        if self.target_frequency_mode.value == 'list':
+            self.target_frequencies_list.enabled = True
+            self.target_frequency_start.enabled = False
+            self.target_frequency_stop.enabled = False
+            self.target_frequency_step.enabled = False
+        elif self.target_frequency_mode.value == 'range':
+            self.target_frequencies_list.enabled = False
+            self.target_frequency_start.enabled = True
+            self.target_frequency_stop.enabled = True
+            self.target_frequency_step.enabled = True
 
 
 @dataclass

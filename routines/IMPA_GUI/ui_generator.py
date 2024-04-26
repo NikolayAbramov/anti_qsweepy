@@ -229,7 +229,8 @@ class UiGenerator:
                         .classes('ml-4')
                 with ui.row(wrap=False):
                     self._create_static_parameter_input(chan.optimization.target_frequencies_list, 'w-28')
-                    ui.select(chan.optimization.target_frequency_mode.variants)\
+                    ui.select(chan.optimization.target_frequency_mode.variants,
+                              on_change=chan.optimization.target_frequency_mode_change)\
                         .classes('ml-2')\
                         .bind_value(chan.optimization.target_frequency_mode, 'value')\
                         .bind_enabled(chan.optimization.target_frequency_mode, 'enabled')
@@ -357,7 +358,7 @@ class UiGenerator:
                 .classes('w-36')
             ui.button('+').bind_enabled(p, 'enabled') \
                 .classes('text-xs ml-0 mr-1 mb-0 mt-3')\
-                .on('click', inc_float, throttle=0.2)
+                .on('click', inc_float)
             ui.button('-').bind_enabled(p, 'enabled') \
                 .on('click', dec_float, throttle=0.2) \
                 .classes('text-xs ml-0 mr-1 mb-0 mt-3')

@@ -27,7 +27,7 @@ if __name__ == "__main__":
     p.start()
     ui.timer(0.01, fp.check_queue)
 
-    ui_cb.init_devices()
+    ui_cb.connect_devices()
     ui.timer(0.1, ui_cb.request_vna_data)
     
     ui.run( port=ui_objects.tcp_ip_port, reload=False)

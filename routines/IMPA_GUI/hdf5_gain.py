@@ -17,7 +17,7 @@ class HDF5GainFile(File):
         self.Ib = 0
         self.Gsnr = 0
     
-    def get_data(self)->dict:
+    def get_data(self) -> dict:
         try:
             self.n_records = len(self.root.thumbnail)
             group = self.root['group_{:d}'.format(self.group_n)]
@@ -29,8 +29,7 @@ class HDF5GainFile(File):
             self.Pp = self.root.thumbnail[self.group_n]['Pp']
             self.Ib = self.root.thumbnail[self.group_n]['I']
             self.Gsnr = self.root.thumbnail[self.group_n]['Gsnr']
-        except exceptions.NoSuchNodeError as err:
-            traceback.print_exc()
+        except (exceptions.NoSuchNodeError, IndexError) as err:
             return {'Fs':None,
                     'Pp':None,
                     'Ib':None,
@@ -40,7 +39,7 @@ class HDF5GainFile(File):
                     'snr_gain':None,
                     'info':None,
                     'status':False,
-                    'message':'Wrong file structure!'}
+                    'message':'File is empty or has wrong structure! Node {0} is missing.'.format(err.args[0])}
         else:    
             info_string = ("{:d}:Fc={:.4f}GHz Pp={:.2f}dBm I={:.4f}mA".\
                             format(self.group_n, 

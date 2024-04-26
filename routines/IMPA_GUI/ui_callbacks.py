@@ -4,6 +4,9 @@ from dataclasses import fields
 from typing import Any
 import numpy as np
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future
+import time
 
 import data_structures as ds
 import multiprocessing as mp
@@ -18,6 +21,9 @@ class UiCallbacks:
         self.q_command = q_command
         self.ui_objects = ui_objects
         self.conf_h = conf_h
+        self._executor = ThreadPoolExecutor(max_workers=1)
+        self._param_inc_dec_future: Future | None = None
+        self._param_inc_dec_stop = False
 
     def _connect_device(self, device: ds.Device, ui_ch: int) -> None:
         self.q_command.put({'op': device.connect_method,
@@ -37,6 +43,8 @@ class UiCallbacks:
                 attr = getattr(dev, f.name)
                 if ds.UIParameter in type(attr).mro() and attr.instrumental:
                     self.queue_param(ch_id, attr.get_value(), attr)
+        else:
+            dev.set_parameters_enable(False)
 
     def setup_devices(self) -> None:
         num_ch = len(self.ui_objects.channel_tabs)
@@ -47,7 +55,7 @@ class UiCallbacks:
                 if ds.Device in type(attr).mro():
                     self.setup_device(attr, ch_id)
 
-    def init_devices(self):
+    def connect_devices(self):
         num_ch = len(self.ui_objects.channel_tabs)
         for ch_id in range(num_ch):
             chan = self.ui_objects.channel_tabs[ch_id].chan
@@ -56,6 +64,8 @@ class UiCallbacks:
                 if ds.Device in type(attr).mro():
                     if attr.is_connected.value:
                         self._connect_device(attr, ch_id)
+                    else:
+                        attr.initialized = True
 
     def check_devices_initialized(self) -> bool:
         num_ch = len(self.ui_objects.channel_tabs)
@@ -78,7 +88,33 @@ class UiCallbacks:
 
     def inc_param(self, ch_id: int, p: ds.FloatUIParam) -> None:
         self.queue_param(ch_id, p.inc(), p)
+    """
+    def inc_param(self, ch_id: int, p: ds.FloatUIParam, event: str) -> None:
+        if event == 'mousedown':
+            self.continuously_inc_dec_param_start(ch_id, p, True)
+        if event == 'mouseup' or event == 'mouseleave':
+            self.continuously_inc_dec_param_stop()
+    
+    def continuously_inc_dec_param_start(self, ch_id: int, p: ds.FloatUIParam, inc: bool) -> None:
+        if not self._param_inc_dec_future.running():
+            self._param_inc_dec_future = self._executor.submit(self.continuously_inc_dec_param, ch_id, p, inc)
 
+    def continuously_inc_dec_param_stop(self) -> None:
+        self._param_inc_dec_stop = True
+
+    def continuously_inc_dec_param(self, ch_id: int, p: ds.FloatUIParam, inc: bool) -> None:
+        period = 0.2
+        while True:
+            if self._param_inc_dec_stop:
+                self._param_inc_dec_stop = False
+                break
+            time.sleep(period)
+            if p.confirmed:
+                if inc:
+                    self.queue_param(ch_id, p.inc(), p)
+                else:
+                    self.queue_param(ch_id, p.dec(), p)
+    """
     def dec_param(self, ch_id: int, p: ds.FloatUIParam) -> None:
         self.queue_param(ch_id, p.dec(), p)
 
@@ -90,6 +126,7 @@ class UiCallbacks:
             return False
         else:
             p.enabled = False
+            p.confirmed = False
             return True
 
     def _queue_command(self, op: str, args: tuple) -> bool:
