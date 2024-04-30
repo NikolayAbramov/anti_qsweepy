@@ -296,7 +296,7 @@ class UiCallbacks:
                 overlay_trace = self.ui_objects.bias_sweep_plot_traces.gain_file_points_overlay
                 tab.bias_sweep_fig['data'][overlay_trace]['x'] = x_overlay
                 tab.bias_sweep_fig['data'][overlay_trace]['y'] = y_overlay
-            if cb_autoscale:
+            if cb_autoscale and len(data['delay']):
                 zmin = np.min(data['delay'])
                 zmax = np.max(data['delay'])
             else:
