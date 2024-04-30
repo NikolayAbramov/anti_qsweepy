@@ -859,7 +859,7 @@ class ChannelTab:
         name='Colorbar min',
         precision=None,
         unit=1,
-        str_fmt='{:.3e}',
+        str_fmt='{:g}',
         min=None,
         max=None
     ))
@@ -867,7 +867,7 @@ class ChannelTab:
         name='Colorbar max',
         precision=None,
         unit=1,
-        str_fmt='{:.3e}',
+        str_fmt='{:g}',
         min=None,
         max=None
     ))

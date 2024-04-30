@@ -139,12 +139,12 @@ class UiCallbacks:
 
     async def _channel_dir_file_picker(self, ch_id: int) -> list[str]:
         tab = self.ui_objects.channel_tabs[ch_id]
-        pth = Path(self.ui_objects.data_folder) / tab.chan.name.replace(' ', '_')
-        if not pth.exists():
-            pth = "~"
+        data_dir = Path(self.ui_objects.data_folder)
+        pth = data_dir / tab.chan.name.replace(' ', '_')
+        pth.mkdir(parents=True, exist_ok=True)
         result = await local_file_picker(pth,
                                          multiple=False,
-                                         upper_limit=None)
+                                         upper_limit=self.ui_objects.data_folder)
         return result
 
     async def pick_gain_file(self, ch_id: int) -> None:
