@@ -93,7 +93,7 @@ class Optimization:
             Gsnr = tables.Float64Col()
 
         f = tables.open_file(self.params.save_path + '\\data.h5', mode='w', title=hdf5_title)
-        thumbnail = f.create_table(f.root, 'thumbnail', Thumbnail, "thumbnail").row
+        #thumbnail = f.create_table(f.root, 'thumbnail', Thumbnail, "thumbnail").row
         group_n = 0
 
         for i, f_cent in enumerate(self.params.target_frequencies_list):
@@ -114,7 +114,8 @@ class Optimization:
                 break
             file.write('\n' + op.file_str())
             file.flush()
-
+            group = f.create_group(f.root, 'group_{:d}'.format(group_n), "S21")
+            thumbnail = f.create_table(group, 'thumbnail', Thumbnail, "thumbnail").row
             thumbnail['group_name'] = 'group_{:d}'.format(group_n)
             thumbnail['group_number'] = group_n
             thumbnail['Fs'] = op.Fs
@@ -124,23 +125,16 @@ class Optimization:
             thumbnail['I'] = op.I
             thumbnail['Gsnr'] = op.Gsnr
             thumbnail.append()
-            f.flush()
-
             S21on, S21off, Fpoints = self.tuner.vna_snapshot(op)
-            group = f.create_group(f.root, 'group_{:d}'.format(group_n), "S21")
             f.create_array(group, 'pump_on', S21on, "S21")
             f.create_array(group, 'pump_off', S21off, "S21")
             f.create_array(group, 'frequency', Fpoints, "Frequency, Hz")
-            f.flush()
-
             S21on, S21off, Fpoints = self.tuner.snr_snapshot(op, Nmeas=100)
             f.create_array(group, 'snr_pump_on', S21on, "S21")
             f.create_array(group, 'snr_pump_off', S21off, "S21")
             f.create_array(group, 'snr_frequency', Fpoints, "Frequency, Hz")
             f.flush()
-
             group_n += 1
-
         f.close()
         file.close()
         self.q.put({'op': 'set_pump_frequency', 'args': (op.Fp, self.params.ch_id,)})
