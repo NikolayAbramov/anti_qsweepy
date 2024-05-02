@@ -35,6 +35,7 @@ class OptimizationParameters:
     maxiter: int
     std_tol: float
     save_path: str
+    n_meas_snr: int = 100
 
 
 class Optimization:
@@ -83,8 +84,6 @@ class Optimization:
         hdf5_title = 'JPA tuning table'
 
         class Thumbnail(tables.IsDescription):
-            group_name = tables.StringCol(16)  # 16-character String
-            group_number = tables.Int32Col()
             Fp = tables.Float64Col()
             Fs = tables.Float64Col()
             G = tables.Float64Col()
@@ -93,8 +92,18 @@ class Optimization:
             Gsnr = tables.Float64Col()
 
         f = tables.open_file(self.params.save_path + '\\data.h5', mode='w', title=hdf5_title)
-        #thumbnail = f.create_table(f.root, 'thumbnail', Thumbnail, "thumbnail").row
-        group_n = 0
+        thumbnail = f.create_table(f.root, 'thumbnail', Thumbnail, "thumbnail").row
+        complex_atom = tables.ComplexAtom(itemsize=16)
+        float_atom = tables.Float64Atom()
+        s21_on = f.create_earray(f.root, 's21_on', complex_atom, (0, self.params.vna_points*2), "S21-on")
+        s21_off = f.create_earray(f.root, 's21_off', complex_atom, (0, self.params.vna_points*2), "S21-off")
+        s21_on_snr = f.create_earray(f.root, 's21_on_snr', complex_atom, (0, self.params.vna_points * 2),
+                                     "mean(S21-on-snr)")
+        s21_off_snr = f.create_earray(f.root, 's21_off_snr', complex_atom, (0, self.params.vna_points * 2),
+                                      "mean(S21-off-snr)")
+        s21_freq = f.create_earray(f.root, 's21_frequency', float_atom, (0, self.params.vna_points*2), "S21 frequency")
+        snr_gain = f.create_earray(f.root, 'snr_gain', float_atom, (0, self.params.vna_points*2), "SNR gain")
+        snr_freq = f.create_earray(f.root, 'snr_freq', float_atom, (0, self.params.vna_points*2), "SNR frequency")
 
         for i, f_cent in enumerate(self.params.target_frequencies_list):
             self.tuner.target_freq = f_cent
@@ -103,21 +112,17 @@ class Optimization:
                                                                           len(self.params.target_frequencies_list),
                                                                           f_cent/1e9))
                 op, status = self.tuner.find_gain(popsize=self.params.popsize,
-                                                 minpopsize=self.params.minpopsize,
-                                                 tol=0.01,
-                                                 std_tol=self.params.std_tol,
-                                                 maxiter=self.params.maxiter,
-                                                 threshold=self.params.threshold,
-                                                 disp=True)
+                                                  minpopsize=self.params.minpopsize,
+                                                  tol=0.01,
+                                                  std_tol=self.params.std_tol,
+                                                  maxiter=self.params.maxiter,
+                                                  threshold=self.params.threshold,
+                                                  disp=True)
             if self._abort:
                 self._abort = False
                 break
             file.write('\n' + op.file_str())
             file.flush()
-            group = f.create_group(f.root, 'group_{:d}'.format(group_n), "S21")
-            thumbnail = f.create_table(group, 'thumbnail', Thumbnail, "thumbnail").row
-            thumbnail['group_name'] = 'group_{:d}'.format(group_n)
-            thumbnail['group_number'] = group_n
             thumbnail['Fs'] = op.Fs
             thumbnail['Fp'] = op.Fp
             thumbnail['G'] = op.G
@@ -125,16 +130,23 @@ class Optimization:
             thumbnail['I'] = op.I
             thumbnail['Gsnr'] = op.Gsnr
             thumbnail.append()
+
             S21on, S21off, Fpoints = self.tuner.vna_snapshot(op)
-            f.create_array(group, 'pump_on', S21on, "S21")
-            f.create_array(group, 'pump_off', S21off, "S21")
-            f.create_array(group, 'frequency', Fpoints, "Frequency, Hz")
+            s21_on.append(S21on.reshape(1, len(S21on)))
+            s21_off.append(S21off.reshape(1, len(S21off)))
+            s21_freq.append(Fpoints.reshape(1, len(Fpoints)))
+
             S21on, S21off, Fpoints = self.tuner.snr_snapshot(op, Nmeas=100)
-            f.create_array(group, 'snr_pump_on', S21on, "S21")
-            f.create_array(group, 'snr_pump_off', S21off, "S21")
-            f.create_array(group, 'snr_frequency', Fpoints, "Frequency, Hz")
+            # Calculate snr gain
+            S21on_mean = np.mean(S21on, axis=0)
+            S21off_mean = np.mean(S21off, axis=0)
+            s21_on_snr.append(S21on_mean.reshape(1, len(S21on_mean)))
+            s21_off_snr.append(S21off_mean.reshape(1, len(S21off_mean)))
+            snr_off = abs(S21off_mean) / np.std(np.real(S21off), axis=0)
+            snr_on = abs(S21on_mean) / np.std(np.real(S21on), axis=0)
+            snr_gain.append((snr_on / snr_off).reshape(1, len(Fpoints)))
+            snr_freq.append(Fpoints.reshape(1, len(Fpoints)))
             f.flush()
-            group_n += 1
         f.close()
         file.close()
         self.q.put({'op': 'set_pump_frequency', 'args': (op.Fp, self.params.ch_id,)})
@@ -143,7 +155,7 @@ class Optimization:
         self.q.put({'op': 'set_vna_center', 'args': (op.Fs, self.params.ch_id)})
         center, span = vna.freq_center_span()
         self.q.put({'op': 'set_vna_span', 'args': (span, self.params.ch_id)})
-        self.q.put({'op': 'set_vna_bandwidth', 'args': ( self.params.vna_bandwidth, self.params.ch_id)})
+        self.q.put({'op': 'set_vna_bandwidth', 'args': (self.params.vna_bandwidth, self.params.ch_id)})
         self.q.put({'op': 'set_vna_power', 'args': (self.params.vna_power, self.params.ch_id)})
         self.q.put({'op': 'set_vna_points', 'args': (self.params.vna_points, self.params.ch_id)})
         self.q.put({'op': 'stop_optimization', 'args': (self.params.ch_id,)})

@@ -20,13 +20,15 @@ class FeedbackProcessor:
         self.q_feedback = q_feedback
         self.cb = cb
 
-    def _connect_device(self, dev: ds.Device) -> None:
+    @staticmethod
+    def _connect_device(dev: ds.Device) -> None:
         dev.is_connected.update(True)
         dev.set_parameters_enable(True)
         dev.is_connected.enabled = True
         dev.initialized = True
 
-    def _disconnect_device(self, dev: ds.Device) -> None:
+    @staticmethod
+    def _disconnect_device(dev: ds.Device) -> None:
         dev.is_connected.update(False)
         dev.set_parameters_enable(False)
         dev.is_connected.enabled = True
@@ -84,6 +86,7 @@ class FeedbackProcessor:
             ch.pump_source.set_parameters_enable(not val)
             if ch_id != except_ch_id:
                 ch.bias_sweep.is_running.enabled = not val
+                ch.optimization.is_running.enabled = not val
 
     def set_vna_measurement_type(self, val: str, ui_ch: int) -> None:
         pass
@@ -133,6 +136,8 @@ class FeedbackProcessor:
         ch.bias_sweep.is_running.update(True)
         ch.bias_sweep.is_running.enabled = True
         ch.bias_sweep.set_parameters_enable(False)
+        ch.optimization.set_parameters_enable(False)
+        ch.optimization.is_running.enabled = False
         self._set_global_ui_lock(True, ch_id)
 
     def bias_sweep_progress(self, val: float, ch_id: int) -> None:
@@ -150,6 +155,9 @@ class FeedbackProcessor:
         ch.bias_sweep.is_running.update(False)
         ch.bias_sweep.is_running.enabled = True
         ch.bias_sweep.set_parameters_enable(True)
+        ch.optimization.set_parameters_enable(True)
+        ch.optimization.is_running.enabled = True
+        self._set_global_ui_lock(False, ch_id)
         # Restore devices settings
         for f in fields(ch.bias_source):
             attr = getattr(ch.bias_source, f.name)
@@ -159,7 +167,6 @@ class FeedbackProcessor:
             attr = getattr(ch.vna, f.name)
             if ds.UIParameter in type(attr).mro() and attr.instrumental:
                 self.cb.queue_param(ch_id, attr.get_value(), attr)
-        self._set_global_ui_lock(False, ch_id)
 
     def start_optimization(self, ch_id: int) -> None:
         ch = self.ui_objects.channel_tabs[ch_id].chan
@@ -167,6 +174,8 @@ class FeedbackProcessor:
         ch.optimization.is_running.update(True)
         ch.optimization.is_running.enabled = True
         ch.optimization.set_parameters_enable(False)
+        ch.bias_sweep.is_running.enabled = False
+        ch.bias_sweep.set_parameters_enable(False)
         self._set_global_ui_lock(True, ch_id)
         log.push("Optimization started at {:s}".format(ch.name))
 
@@ -176,11 +185,14 @@ class FeedbackProcessor:
         ch.optimization.is_running.update(False)
         ch.optimization.is_running.enabled = True
         ch.optimization.set_parameters_enable(True)
+        ch.bias_sweep.is_running.enabled = True
+        ch.bias_sweep.set_parameters_enable(True)
         # TODO add devices settings download from the instruments
         self._set_global_ui_lock(False, ch_id)
         log.push("Optimization stopped at {:s}".format(ch.name))
 
-    def _update_param(self, p: ds.UIParameter, val: Any):
+    @staticmethod
+    def _update_param(p: ds.UIParameter, val: Any):
         p.update(val)
         p.enabled = True
         p.confirmed = True

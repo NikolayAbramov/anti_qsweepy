@@ -119,15 +119,16 @@ class UiCallbacks:
         self.queue_param(ch_id, p.dec(), p)
 
     def queue_param(self, ch_id, val: Any, p: ds.UIParameter) -> bool:
-        try:
-            self.q_command.put({'op': p.method, 'args': (val, ch_id)})
-        except queue.Full:
-            p.update_str()
-            return False
-        else:
+        if p.enabled:
+            try:
+                self.q_command.put({'op': p.method, 'args': (val, ch_id)})
+            except queue.Full:
+                p.update_str()
+                return False
             p.enabled = False
             p.confirmed = False
             return True
+        return False
 
     def _queue_command(self, op: str, args: tuple) -> bool:
         try:
@@ -142,7 +143,7 @@ class UiCallbacks:
         data_dir = Path(self.ui_objects.data_folder)
         pth = data_dir / tab.chan.name.replace(' ', '_')
         pth.mkdir(parents=True, exist_ok=True)
-        result = await local_file_picker(pth,
+        result = await local_file_picker(str(pth),
                                          multiple=False,
                                          upper_limit=self.ui_objects.data_folder)
         return result

@@ -279,14 +279,12 @@ class IMPATuner():
             self.vna.bandwidth(self.bw / 10)
         else:
             self.vna.bandwidth(bw)
-
         self.vna.soft_trig_arm()
         S21on = self.vna.read_data()
-        self.pump.output(0)
+        self.pump.output(False)
         S21off = self.vna.read_data()
         Fpoints = self.vna.freq_points()
         self.vna.soft_trig_abort()
-
         return S21on, S21off, Fpoints
 
     def snr_snapshot(self, op, span=None, N=None, Ps=None, bw=None, Nmeas=100):
