@@ -1147,7 +1147,6 @@ class DifferentialEvolutionSolver:
         idxs = idxs[:number_samples]
         return idxs
 
-
 class _ConstraintWrapper:
     """Object to wrap/evaluate user defined constraints.
     Very similar in practice to `PreparedConstraint`, except that no evaluation
