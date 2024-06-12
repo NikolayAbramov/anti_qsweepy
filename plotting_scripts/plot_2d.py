@@ -10,7 +10,7 @@ data_2d = array(f.root.data)
 c_coord = array(f.root.column_coordinate)
 r_cord = array(f.root.row_coordinate)
 
-pcolormesh( c_coord, r_cord, db(abs(data_2d)) )
+pcolormesh( c_coord, r_cord, abs(data_2d) )
 colorbar()
 show()
 
