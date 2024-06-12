@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "bias_start": {"type": "number"},
+              "bias_stop": {"type": "number"},
+              "bias_step": {"type": "number"},
+              "vna_start": {"type": "number"},
+              "vna_stop": {"type": "number"},
+              "vna_power": {"type": "number"},
+              "vna_points": {"type": "integer"},
+              "vna_bandwidth": {"type": "number"}
+            },
+            "required": ["bias_start", "bias_stop", "bias_step", "vna_start", "vna_stop", "vna_power", "vna_points", "vna_bandwidth"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["name", "parameters"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["channels"],
+  "additionalProperties": false
+}

@@ -1,2 +1,2 @@
-call C:\ProgramData\anaconda3\Scripts\activate.bat
+call C:\ProgramData\Anaconda3\Scripts\activate.bat
 python
