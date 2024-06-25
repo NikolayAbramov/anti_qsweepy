@@ -27,6 +27,7 @@ class VisaInstrument(Instrument):
         self.term_chars = term_chars
         self.always_query = False
         self.n_trys = 5
+        self.instr = None
         self._open_instrument()
 
     def _open_instrument(self):

@@ -11,7 +11,7 @@ f = tables.open_file('data.h5', mode='r')
 thumbnail = f.root.thumbnail
 for record in thumbnail:
 	node = f.get_node('/group_{:d}'.format(record['group_number']))
-	plot( array(node.F)*1e-9, db(array(node.P)), label = '{:f}K'.format(record['temperature']))
+	plot( array(node.F)*1e-9, db(array(node.P)), label = '{0} {1}K'.format(record['group_number'],record['temperature']))
 xlabel("Frequency, GHz")
 ylabel("Power, dBm")
 legend()

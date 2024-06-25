@@ -4,15 +4,9 @@ import ctypes
 
 
 class SpectrumAnalyzer(VisaInstrument):
-    """This is the python driver for the Signal Hound SA124 spectrum analyzer"""
+    """This is VISA instrument based driver for the Agilent MXA spectrum analyzer"""
 
     def __init__(self, *args):
-        """
-        Initializes
-
-        Input:
-            serial (int) : serial number
-        """
         VisaInstrument.__init__(self, *args)
         # Set detector type "Average"
         self.instr.write(':DET:TRAC SAMP')
@@ -27,10 +21,9 @@ class SpectrumAnalyzer(VisaInstrument):
 
     def read_data(self):
         """Returns measured spectrum in watts"""
-
         self.instr.query(':INIT:IMM;*OPC?')
         buffer = self.instr.query("CALC:DATA?")
-        data = np.fromstring(buffer, sep=",", dtype=np.float)
+        data = np.fromstring(buffer, sep=",", dtype=float)
         S = data[1::2]
         F = data[0::2]
         S = 10 ** (S / 10) * 1e-3
@@ -58,7 +51,7 @@ class SpectrumAnalyzer(VisaInstrument):
 
     def ref_level(self, val=None):
         if val is not None:
-            self.instr.write(":DISP:WIND:TRAC:Y:RLEV {:e}".format(val[0]))
+            self.instr.write(":DISP:WIND:TRAC:Y:RLEV {:e}".format(val))
         else:
             val = float(self.instr.query(":DISP:WIND:TRAC:Y:RLEV?"))
         return val
@@ -84,8 +77,9 @@ class SpectrumAnalyzer(VisaInstrument):
         return val
 
     def freq_points(self):
+        """Get frequency points from the instrumen. Only available when sweep is complete."""
         buffer = self.instr.query("CALC:DATA?")
-        data = np.fromstring(buffer, sep=",", dtype=np.float)
+        data = np.fromstring(buffer, sep=",", dtype=float)
         F = data[0::2]
         return F
 

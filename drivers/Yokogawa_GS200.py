@@ -15,7 +15,7 @@ class CurrentSource(VisaInstrument):
             else:
                 self.instr.write("SOUR:LEVEL {:f}".format(val))
         else:
-            val = float(self.instr.query("SOUR:LEVEL ?"))
+            val = float(self.instr.query("SOUR:LEVEL?"))
         return val
 
     def output(self, val=None):
