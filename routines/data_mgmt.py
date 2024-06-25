@@ -90,3 +90,49 @@ def add_vna_description(file, segment_table, parameter_val = None):
 		s_table['power'] = item['power']
 		s_table['bandwidth'] = item['bandwidth']
 		s_table.append()
+        
+def add_sa_description(file: tables.File, metadata: dict) -> None:
+    """Add spectrum analyzer metadata table to the HDF5 file"""
+    class SAMetadata(tables.IsDescription):
+        rbw = tables.Float64Col()
+        vbw = tables.Float64Col()
+        
+    s_table = file.create_table(file.root, 'metadata', SAMetadata, "metadata").row
+    s_table['rbw'] = metadata['rbw']
+    s_table['vbw'] = metadata['vbw']
+    s_table.append()
+    
+
+def impa_tuning_results(f_points:int, save_path:str):
+	"""Creates HDF5 file to store IMPA tuning results"""
+	class Thumbnail(tables.IsDescription):
+		Fp = tables.Float64Col()
+		Fs = tables.Float64Col()
+		G = tables.Float64Col()
+		Pp = tables.Float64Col()
+		I = tables.Float64Col()
+		Gsnr = tables.Float64Col()
+
+	hdf5_title = 'JPA tuning table'
+	f = tables.open_file(save_path + '\\data.h5', mode='w', title=hdf5_title)
+	thumbnail = f.create_table(f.root, 'thumbnail', Thumbnail, "thumbnail").row
+	complex_atom = tables.ComplexAtom(itemsize=16)
+	float_atom = tables.Float64Atom()
+	s21_on = f.create_earray(f.root, 's21_on', complex_atom, (0, f_points * 2), "S21-on")
+	s21_off = f.create_earray(f.root, 's21_off', complex_atom, (0, f_points * 2), "S21-off")
+	s21_on_snr = f.create_earray(f.root, 's21_on_snr', complex_atom, (0, f_points * 2),
+								 "mean(S21-on-snr)")
+	s21_off_snr = f.create_earray(f.root, 's21_off_snr', complex_atom, (0, f_points * 2),
+								  "mean(S21-off-snr)")
+	s21_freq = f.create_earray(f.root, 's21_frequency', float_atom, (0, f_points * 2), "S21 frequency")
+	snr_gain = f.create_earray(f.root, 'snr_gain', float_atom, (0, f_points * 2), "SNR gain")
+	snr_freq = f.create_earray(f.root, 'snr_freq', float_atom, (0, f_points * 2), "SNR frequency")
+	return {'thumbnail': thumbnail,
+			's21_on': s21_on,
+			's21_off': s21_off,
+			's21_on_snr': s21_on_snr,
+			's21_off_snr': s21_off_snr,
+			's21_freq': s21_freq,
+			'snr_gain': snr_gain,
+			'snr_freq': snr_freq,
+			'file': f}

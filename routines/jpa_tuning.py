@@ -11,7 +11,7 @@ class OperationPoint():
         self.Fp = Fp
         self.G = G
         self.Gsnr = Gsnr
-
+    
     def __str__(self):
         return ("""Fs = {:.6e} Hz
 Fp = {:.6e} Hz
@@ -27,19 +27,19 @@ Gsnr = {:.2f} dB""".format(self.Fs, self.Fp, self.Pp, self.I, self.G, self.Gsnr)
     def file_str_header(self):
         return "#Fs,Hz\t\tFp,Hz\t\tPp,dBm\tI,A\t\tG,dB\tGsnr,dB"
 
-	def __str__(self):
-		return("""Fs = {:.6e} Hz
+    def __str__(self):
+        return("""Fs = {:.6e} Hz
 Fp = {:.6e} Hz
 Pp = {:.3f} dBm
 I = {:.6e} A
 G = {:.2f} dB
 Gsnr = {:.2f} dB""".format(self.Fs,self.Fp,self.Pp,self.I,self.G,self.Gsnr))
 		
-	def file_str(self):
-		return  "{:.6e}\t{:.6e}\t{:.2f}\t{:e}\t{:.2f}\t{:.2f}".format(self.Fs, self.Fp, self.Pp, self.I, self.G, self.Gsnr )
+    def file_str(self):
+        return  "{:.6e}\t{:.6e}\t{:.2f}\t{:e}\t{:.2f}\t{:.2f}".format(self.Fs, self.Fp, self.Pp, self.I, self.G, self.Gsnr )
 	
-	def file_str_header(self):
-		return "#Fs,Hz\t\tFp,Hz\t\tPp,dBm\tI,A\t\tG,dB\tGsnr,dB"
+    def file_str_header(self):
+        return "#Fs,Hz\t\tFp,Hz\t\tPp,dBm\tI,A\t\tG,dB\tGsnr,dB"
 		
 class TuningTable():
     def __init__(self, points=[]):
