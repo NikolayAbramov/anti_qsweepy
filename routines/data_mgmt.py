@@ -3,7 +3,7 @@ import shutil
 import datetime
 import pathlib
 import tables
-import re
+from numpy.typing import ArrayLike
 
 def default_save_path(root, time=True, name=None):
 
@@ -23,10 +23,10 @@ def default_save_path(root, time=True, name=None):
 	pathlib.Path(path).mkdir(parents=True, exist_ok=True) 
 	return path
 
-def extendable_2d(path, column_coordinate, dtype = complex,
-				  data_descr = "Complex S-parameter",
-				  column_descr = "Frequency, Hz",
-				  row_descr = "Power, dBm"):
+def extendable_2d(path:str, column_coordinate:ArrayLike, dtype:type = complex,
+				  data_name:str = "Complex S-parameter",
+				  column_name:str = "Frequency, Hz",
+				  row_name:str = "Power, dBm"):
 	# Create HDF5 data file
 	f = tables.open_file(path+'\\data.h5', mode='w')
 	f.close()
@@ -34,15 +34,42 @@ def extendable_2d(path, column_coordinate, dtype = complex,
 	d_atom = tables.ComplexAtom(itemsize = 16 )
 	rc_atom = tables.Float64Atom() #coordinates dtype
 	if dtype is complex:
-		d_array = f.create_earray(f.root, 'data', d_atom, (0, len(column_coordinate)), "Data")
+		d_array = f.create_earray(f.root, 'data', d_atom, (0, len(column_coordinate)), data_name)
 	elif dtype is float:
-		d_array = f.create_earray(f.root, 'data', rc_atom, (0, len(column_coordinate)), "Data")
+		d_array = f.create_earray(f.root, 'data', rc_atom, (0, len(column_coordinate)), data_name)
 	else:
 		raise TypeError
-	f.create_array(f.root, 'column_coordinate', column_coordinate, "Frequency, Hz")
-	r_array = f.create_earray(f.root, 'row_coordinate', rc_atom, (0,), "Power, dBm")
+	f.create_array(f.root, 'column_coordinate', column_coordinate, column_name)
+	r_array = f.create_earray(f.root, 'row_coordinate', rc_atom, (0,), row_name)
 	f.flush()
-	return f, d_array, r_array	
+	return f, d_array, r_array
+
+def add_extandable_1d(file: tables.File,
+						meas_name: str,
+						x_label: str = 'x',
+						y_label: str = 'y',
+						x_dtype: type = float,
+						y_dtype: type = float) -> tuple[tables.EArray, tables.EArray]:
+	group = file.create_group(file.root, meas_name, meas_name)
+
+	if x_dtype is complex:
+		x_atom = tables.ComplexAtom(itemsize=16)
+	elif x_dtype is float:
+		x_atom = tables.Float64Atom()
+	else:
+		raise TypeError
+
+	if y_dtype is complex:
+		y_atom = tables.ComplexAtom(itemsize=16)
+	elif y_dtype is float:
+		y_atom = tables.Float64Atom()
+	else:
+		raise TypeError
+
+	x_array = file.create_earray(group, 'x', x_atom, (0,), x_label)
+	y_array = file.create_earray(group, 'y', y_atom, (0,), y_label)
+	return x_array, y_array
+
 
 def data_file(path):	
 	#Create HDF5 data file

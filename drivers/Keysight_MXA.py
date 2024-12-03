@@ -1,15 +1,17 @@
 import numpy as np
 from anti_qsweepy.drivers.instrument_base_classes import VisaInstrument
-import ctypes
 
 
 class SpectrumAnalyzer(VisaInstrument):
-    """This is VISA instrument based driver for the Agilent MXA spectrum analyzer"""
+    """This general purpose Spectrum Analyzer representation of the Keysight MXA"""
 
     def __init__(self, *args):
         VisaInstrument.__init__(self, *args)
+        # Make sure that mode is SAN = Spectrum Analyzer
+        if 'SAN' not in self.query("CONF?"):
+            self.write("CONF:SAN")
         # Set detector type "Average"
-        self.instr.write(':DET:TRAC SAMP')
+        self.instr.write(':DET:TRAC AVER')
 
     def soft_trig_arm(self):
         self.instr.write(':INIT:CONT OFF')
@@ -86,3 +88,34 @@ class SpectrumAnalyzer(VisaInstrument):
     def averaging(self, val=None):
         # Not supported
         return 1
+
+
+class ListSpectrumAnalyzer(VisaInstrument):
+    """List sweeping Spectrum Analyzer representation of the Keysight MXA"""
+    def __init__(self, *args):
+        VisaInstrument.__init__(self, *args)
+        # Make sure mode is LIST
+        if self.query(":CONF?") != "LIST":
+            self.write(":CONF:LIST")
+        self.write(':LIST:DET RMS')
+
+    def sweep_time(self, val: float | None =None) -> float:
+        return float(self.write_or_query(':LIST:SWE:TIME', val, "{:e}"))
+
+    def freq_points(self, freq_list=None) -> np.ndarray[float]:
+        """Sets or gets list of frequencies in Hz"""
+        if freq_list is not None:
+            self.write(':LIST:FREQ ' + ', '.join('{:e}'.format(f) for f in freq_list))
+        else:
+            freq_list = np.asarray(self.query(':LIST:FREQ?').split(','), dtype=float)
+        return freq_list
+
+    def rbw(self, val: float | None = None) -> float:
+        return float(self.write_or_query(':LIST:BAND:RES', val, "{:e}"))
+
+    def vbw(self, val: float | None = None) -> float:
+        return float(self.write_or_query(':LIST:BAND:VID', val, "{:e}"))
+
+    def read_data(self) -> np.ndarray[float]:
+        """Starts measurement and returns measured power in dBm"""
+        return np.asarray(self.query(':READ:LIST?').split(','), dtype=float)

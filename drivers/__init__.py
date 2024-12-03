@@ -3,7 +3,7 @@
 #__all__ = [name for loader, name, is_pkg in pkgutil.walk_packages(__path__)]
 import anti_qsweepy.drivers.Agilent_PNA as Agilent_PNA
 import anti_qsweepy.drivers.Agilent_PSG as Agilent_PSG
-import anti_qsweepy.drivers.Anapico_RFSG as Anapico_RFSG
+import anti_qsweepy.drivers.Anapico_SG as Anapico_SG
 import anti_qsweepy.drivers.Artificial_SMU as Artificial_SMU
 import anti_qsweepy.drivers.DAC_24 as DAC_24
 import anti_qsweepy.drivers.DC_Switch as DC_Switch
@@ -28,7 +28,7 @@ import anti_qsweepy.drivers.Yokogawa_GS200 as Yokogawa_GS200
 __all__ = [ 'exceptions',
             'Agilent_PNA',
             'Agilent_PSG',
-            'Anapico_RFSG',
+            'Anapico_SG',
             'Artificial_SMU',
             'BlueFors_LD250',
             'DAC_24',
@@ -42,6 +42,7 @@ __all__ = [ 'exceptions',
             'Keithley_6221',
             'Keysight_MXA',
             'Mercury_iTc',
+            'RF_Modules',
             'RS_ZNB20',
             'RS_ZVB20',
             'SignalCore_SC5511A',
