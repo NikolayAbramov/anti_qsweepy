@@ -248,7 +248,11 @@ class VNA(Device):
         self.is_connected.method = 'vna_connect'
         self.connect_method = 'connect_vna'
         self.disconnect_method = 'disconnect_vna'
-    measurement_type: str = 'S21'
+    #measurement_type: str = 'S21'
+    measurement_type: SelectUIParam = field(default_factory=
+                                            lambda: SelectUIParam(name= 'Measurement type',
+                                                                  method = 'set_vna_measurement_type',
+                                                                  variants={'s11':'S11', 's21':'S21', 's12':'S12'}))
     bandwidth: FloatUIParam = field(default_factory=
                                     lambda: FloatUIParam(name='Bandwidth, Hz',
                                                          method='set_vna_bandwidth',

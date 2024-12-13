@@ -444,7 +444,7 @@ class UiCallbacks:
                 return
             if self._queue_command('start_optimization', (data,)):
                 ch.optimization.is_running.enabled = False
-                self.conf_h.save_optinization_config()
+                self.conf_h.save_optimization_config()
             else:
                 tab.log.push("Error: failed to start optimization.")
         else:

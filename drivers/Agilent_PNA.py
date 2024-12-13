@@ -26,11 +26,19 @@ class NetworkAnalyzer(VisaInstrument):
         self._abort = True
 
     def measurement_type(self, val: str | None = None) -> str:
+        """Set or get S-parameter measurement type
+
+            Two port measurements are supported: S11, S22, S21 or S12
+        """
         if val is not None:
+            val = val.upper()
             if val not in ["S11", "S21", "S22", "S12"]:
                 raise ValueError("Wrong measurement type {:s}!".format(val))
-        self.instr.write("CALC:PAR:MNUM 1")
-        return str(self.write_or_query("CALC:PAR:MOD", val, "{:s}"))
+            self.instr.write("CALC:PAR:MNUM 1")
+            self.instr.write("CALC:PAR:MOD {:s}".format(val) )
+        resp = self.instr.query("CALC:PAR:CAT?")
+        resp = resp.replace('\n', '').replace('"', '')
+        return resp.split(',')[1]
 
     def soft_trig_arm(self):
         self.instr.write("TRIG:SOUR MAN")

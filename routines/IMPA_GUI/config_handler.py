@@ -106,9 +106,9 @@ class ConfigHandler:
         yaml_inst.dump(config, self.user_config_files.config)
 
     def load_config(self) -> None:
-        f = open(self.user_config_files.config)
         f_sch = open(self.default_config_files.config_schema)
-        config = yaml.load(f, yaml.Loader)#, yaml.CLoader)
+        yaml_inst = yaml.YAML()
+        config = yaml_inst.load( self.user_config_files.config )
         schema = json.load(f_sch)
         validate(config, schema)
         self.ui_objects.data_folder = config['data_dir']
@@ -122,14 +122,13 @@ class ConfigHandler:
             config_obj_from_dict(tab.chan.pump_source, ch_config['pump_source'])
             self.ui_objects.channel_tabs += [tab]
             self.ui_objects.channel_name_id.update({ch_config['name']:ch_id})
-        f.close()
         f_sch.close()
         self.load_bias_sweep_config()
         self.load_optimization_config()
 
     def load_bias_sweep_config(self) -> None:
-        f = open(self.user_config_files.bias_sweep)
-        config = yaml.load(f, yaml.Loader)#, yaml.CLoader)
+        yaml_inst = yaml.YAML()
+        config = yaml_inst.load(self.user_config_files.bias_sweep)
         f_sch = open(self.default_config_files.bias_sweep_schema)
         schema = json.load(f_sch)
         validate(config, schema)
@@ -140,7 +139,6 @@ class ConfigHandler:
                 continue
             bias_sweep = self.ui_objects.channel_tabs[ch_id].chan.bias_sweep
             config_obj_from_dict(bias_sweep, ch_data['parameters'])
-        f.close()
         f_sch.close()
 
     def save_bias_sweep_config(self) -> None:
@@ -156,8 +154,8 @@ class ConfigHandler:
         yaml_inst.dump(bias_sweep_config, self.user_config_files.bias_sweep)
 
     def load_optimization_config(self) -> None:
-        f = open(self.user_config_files.optimization)
-        config = yaml.load(f, yaml.Loader)#, yaml.CLoader)
+        yaml_inst = yaml.YAML()
+        config = yaml_inst.load( self.user_config_files.optimization )
         f_sch = open(self.default_config_files.optimization_schema)
         schema = json.load(f_sch)
         validate(config, schema)
@@ -168,10 +166,9 @@ class ConfigHandler:
                 continue
             obj = self.ui_objects.channel_tabs[ch_id].chan.optimization
             config_obj_from_dict(obj, ch_data['parameters'])
-        f.close()
         f_sch.close()
 
-    def save_optinization_config(self) -> None:
+    def save_optimization_config(self) -> None:
         yaml_inst = yaml.YAML()
         optimization_config = yaml_inst.load(self.default_config_files.optimization)
         n_ch = len(self.ui_objects.channel_tabs)

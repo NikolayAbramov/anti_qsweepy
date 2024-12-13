@@ -230,7 +230,7 @@ class HWCommandProcessor:
             phy_dev = self.vna[ui_ch]
             phy_dev.dev_inst.channel(phy_dev.chan)
             try:
-                phy_dev.dev_inst.measurement_type(val)
+                val = phy_dev.dev_inst.measurement_type(val)
             except Exception as err:
                 tb.print_exc()
                 self.q.put({'op': 'log_push', 'args': ('Failed to set VNA measurement type {:s}!\n'
