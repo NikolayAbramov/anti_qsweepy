@@ -48,11 +48,18 @@ class UiCallbacks:
 
     def setup_devices(self) -> None:
         num_ch = len(self.ui_objects.channel_tabs)
+        vna_entries = []
         for ch_id in range(num_ch):
             chan = self.ui_objects.channel_tabs[ch_id].chan
             for f in fields(chan):
                 attr = getattr(chan, f.name)
                 if ds.Device in type(attr).mro():
+                    if type(attr) is ds.VNA:
+                        # VNA is a complicated device so it's better to reset setting to default first
+                        vna_entry = [attr.driver_name,attr.class_name,attr.address]
+                        if vna_entry not in vna_entries:
+                            self.q_command.put({'op': 'vna_preset', 'args': (ch_id,)})
+                            vna_entries += vna_entry
                     self.setup_device(attr, ch_id)
 
     def connect_devices(self):
@@ -335,6 +342,10 @@ class UiCallbacks:
             pass
         else:
             tab.chan.vna.is_connected.enabled = False
+
+    def vna_sync(self,ch_id):
+        self.q_command.put({'op': 'vna_preset', 'args': (ch_id,)})
+        self.setup_device( self.ui_objects.channel_tabs[ch_id].chan.vna, ch_id)
 
     def bind_pump_freq_to_vna_center(self, ch_id):
         ch_tab = self.ui_objects.channel_tabs[ch_id]

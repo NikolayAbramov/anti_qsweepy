@@ -225,6 +225,11 @@ class HWCommandProcessor:
         for ui_ch in ui_ch_list:
             self.q.put({'op': 'disconnect_vna', 'args': (ui_ch,)})
 
+    def vna_preset(self, ui_ch: int) -> None:
+        if ui_ch in self.vna.keys():
+            phy_dev = self.vna[ui_ch]
+            phy_dev.dev_inst.preset()
+
     def set_vna_measurement_type(self, val: str, ui_ch: int) -> None:
         if ui_ch in self.vna.keys():
             phy_dev = self.vna[ui_ch]

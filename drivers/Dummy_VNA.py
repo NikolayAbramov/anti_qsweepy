@@ -8,6 +8,7 @@ import scipy.constants as sc
 class NetworkAnalyzer:
 
     def __init__(self, *args):
+        self._n_ch = 4
         self._ch = 0
         self._m_type = 'S21'
         self._power = 0
@@ -40,6 +41,12 @@ class NetworkAnalyzer:
         if val is not None:
             self._ch = val
         return self._ch
+
+    def channels(self) -> int:
+        return self._n_ch
+
+    def preset(self):
+        pass
 
     def measurement_type(self, val: str | None = None) -> str:
         if val is not None:

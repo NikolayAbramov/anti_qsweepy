@@ -21,6 +21,10 @@ class NetworkAnalyzer(VisaInstrument):
                 raise ValueError('There is only one channel 0 on this device!')
         return self._ch
 
+    def preset(self) -> None:
+        """Reset instrument to default state"""
+        self.instr.write('SYST:PRES')
+
     def abort(self) -> None:
         """Abort read_data() thread"""
         self._abort = True
