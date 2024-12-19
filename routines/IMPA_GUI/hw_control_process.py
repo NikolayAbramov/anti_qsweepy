@@ -303,7 +303,6 @@ class HWCommandProcessor:
 
     def get_vna_data(self, ui_ch) -> None:
         if ui_ch in self.vna.keys():
-            phy_dev = self.vna[ui_ch]
             if self.vna_read_data_future is None:
                 self.vna_read_data_future = self.executor.submit(self._get_vna_data, ui_ch)
             elif not self.vna_read_data_future.running():

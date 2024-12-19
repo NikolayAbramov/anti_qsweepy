@@ -42,7 +42,6 @@ class BiasSweep:
         self.vna.dev_inst.abort()
 
     def sweep(self):
-        print("Debug 1")
         self._abort = False
         bias_vals = np.arange(self.params.bias_start,
                               self.params.bias_stop,
@@ -64,7 +63,7 @@ class BiasSweep:
         vna.sweep_type("LIN")
         # Create data file
         Fna = vna.freq_points()
-        f, d_array, r_array = data_mgmt.extendable_2d(self.params.save_path, Fna, row_descr=row_descr)
+        f, d_array, r_array = data_mgmt.extendable_2d(self.params.save_path, Fna, row_name=row_descr)
         # Report to UI process
         self.q.put({'op': 'open_bias_sweep_file', 'args': (self.params.save_path+r'\data.h5', self.params.ch_id)})
         # Spawn auxiliary plotting script in the data dir

@@ -1,5 +1,5 @@
-import can
 import warnings
+from enum import Enum
 
 from anti_qsweepy.drivers.rf_modules.definitions import *
 
@@ -27,29 +27,44 @@ class RxBufferOverrun(Exception):
         msg = 'Try again'
         super().__init__(msg)
 
+class BACKENDS(Enum):
+    WAVESHARE_USB_CAN_A = 1
+    PYTHON_CAN_GS_USB = 2
 
 class TX:
-    def __init__(self):
+    def __init__(self, addr:str, backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A):
         self.timeout = 1
-        filters = [{"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID, "extended": False}, ]
-        self.bus = can.Bus(interface="gs_usb", channel=0x606F, index=0, bitrate=500000, can_filters=filters)
+        filters = {"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID}
+        if backend is BACKENDS.WAVESHARE_USB_CAN_A:
+            from anti_qsweepy.drivers.rf_modules.waveshare_usb_can_a import WaveshareUSB_CAN_A
+            self.backend = WaveshareUSB_CAN_A(addr, 2000000, 500000)
+        elif backend is BACKENDS.PYTHON_CAN_GS_USB:
+            from anti_qsweepy.drivers.rf_modules.python_can_backend import PythonCAN_GS_USB_Backend
+            self.backend = PythonCAN_GS_USB_Backend(filters)
         self.flush_rx_buffer()
 
-    def flush_rx_buffer(self) -> int:
+    def flush_rx_buffer(self, module_id: int|None = None, param_id: int|None = None) -> tuple[int,bytes|None]:
+        """Flush RX buffer of the adapter and try to find lost message if corresponding parameters of the function are provided"""
         msg_flushed = 0
-        for _ in range(10):
-            msg = self.bus.recv(timeout=0.1)
-            if msg is None:
+        self.backend.timeout = 0.1
+        data_recovered = None
+        for _ in range(100):
+            can_id, data = self.backend.receive()
+            if can_id is None:
                 break
+            # Try to find wat we need in a pile of frames
+            if module_id is not None and param_id is not None:
+                param_id_resp = data[-1] >> 1
+                module_id_resp = can_id - CAN_RESPONSE_BASE_ID
+                if param_id_resp == param_id and module_id_resp == module_id:
+                    data_recovered = data
             else:
                 msg_flushed += 1
-        return msg_flushed
-
-    def __del__(self):
-        self.bus.shutdown()
-        self.bus.gs_usb.gs_usb.reset()
+        self.backend.timeout = self.timeout
+        return msg_flushed, data_recovered
 
     def module_id(self, module_id: int):
+        """Identify module by initiating its green LED blinking"""
         self._write(module_id, PARAM_ID.MODULE_ID)
 
     @staticmethod
@@ -165,18 +180,22 @@ class TX:
         val = code * LO_ATT_STEP
         return val
 
-    def _validate_response(self, module_id: int, param_id: int, msg: can.Message) -> None:
-        actual_param_id = msg.data[-1] >> 1
-        actual_module_id = msg.arbitration_id - CAN_RESPONSE_BASE_ID
+    def _validate_response(self, module_id: int, param_id: int, can_id_resp: int, data_resp: bytes) -> bytes|None:
+        actual_param_id = data_resp[-1] >> 1
+        actual_module_id = can_id_resp - CAN_RESPONSE_BASE_ID
         if actual_param_id != param_id or actual_module_id != module_id:
-            msg_flushed = self.flush_rx_buffer()
-            if msg_flushed > 0:
-                raise RxBufferOverrun
+            msg_flushed, data_recovered = self.flush_rx_buffer(module_id, param_id)
+            if data_recovered is None:
+                if msg_flushed > 0:
+                    raise RxBufferOverrun
+                else:
+                    if actual_param_id != param_id:
+                        raise BadResponseParamID(module_id, param_id, actual_param_id)
+                    if actual_module_id != module_id:
+                        raise BadResponseModuleID(module_id, actual_module_id)
             else:
-                if actual_param_id != param_id:
-                    raise BadResponseParamID(module_id, param_id, actual_param_id)
-                if actual_module_id != module_id:
-                    raise BadResponseModuleID(module_id, actual_module_id)
+                return data_recovered
+        return None
 
     def _write(self, module_id: int, param_id: PARAM_ID, data: int | None = None, size: int | None = None) -> None:
         read = 0
@@ -184,12 +203,11 @@ class TX:
             data = int(data).to_bytes(size, 'little') + ((int(param_id) << 1) + read).to_bytes(1)
         else:
             data = ((int(param_id) << 1) + read).to_bytes(1)
-        msg = can.Message(arbitration_id=module_id, data=data, is_extended_id=False)
-        self.bus.send(msg, timeout=self.timeout)
-        msg = self.bus.recv(timeout=self.timeout)
-        if msg is not None:
+        self.backend.send(module_id, data)
+        can_id_resp, data_resp = self.backend.receive()
+        if can_id_resp is not None:
             try:
-                self._validate_response(module_id, param_id, msg)
+                self._validate_response(module_id, param_id, can_id_resp, data_resp)
             except RxBufferOverrun:
                 warnings.warn('RxBufferOverrun exception occurred during write to module {0}!'.format(module_id))
         else:
@@ -198,12 +216,14 @@ class TX:
     def _read(self, module_id: int, param_id: PARAM_ID, size: int) -> int:
         read = 1
         data = ((int(param_id) << 1) + read).to_bytes(1)
-        msg = can.Message(arbitration_id=module_id, data=data, is_extended_id=False)
-        self.bus.send(msg, timeout=self.timeout)
-        msg = self.bus.recv(timeout=self.timeout)
-        if msg is not None:
-            self._validate_response(module_id, param_id, msg)
-            value = int.from_bytes(msg.data[0:size], 'little')
+
+        self.backend.send(module_id, data)
+        can_id_resp, data_resp = self.backend.receive()
+        if can_id_resp is not None:
+            data_recovered = self._validate_response(module_id, param_id, can_id_resp, data_resp)
+            if data_recovered is not None:
+                data_resp = data_recovered
+            value = int.from_bytes(data_resp[0:size], 'little')
             return value
         else:
             raise NoResponse(module_id)

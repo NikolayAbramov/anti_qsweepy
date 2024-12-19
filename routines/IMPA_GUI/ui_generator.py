@@ -1,4 +1,5 @@
 from nicegui import ui
+from nicegui import events
 from typing import Callable
 import data_structures as ds
 import ui_callbacks as ui_cb
@@ -70,6 +71,11 @@ class UiGenerator:
         toggle_gain_plot_autoscale = lambda: self.cb.toggle_gain_plot_autoscale(ch_id)
         browse_gain_file_left = lambda: self.cb.browse_gain_file_left(ch_id)
         browse_gain_file_right = lambda: self.cb.browse_gain_file_right(ch_id)
+
+        def on_gain_plot_relayout(e:events.GenericEventArguments) -> None:
+            ui.notify(e)
+            self.cb.handle_gain_plot_relayout( e, ch_id)
+
         pick_bias_sweep_file = lambda: self.cb.pick_bias_sweep_file(ch_id)
         update_bias_sweep_plot_from_file = lambda: self.cb.update_bias_sweep_plot_from_file(ch_id,
                                                                                          cb_autoscale=False)
@@ -79,7 +85,8 @@ class UiGenerator:
         with ui.row(wrap=False).classes('w-full'):
             # Gain plot
             with ui.column().classes('w-1/3'):
-                tab.gain_plot = ui.plotly(tab.gain_fig).classes('mr-2 w-full aspect-square')
+                tab.gain_plot = ui.plotly(tab.gain_fig).classes('mr-2 w-full aspect-square')\
+                                .on('plotly_relayout', on_gain_plot_relayout )
                 with ui.row().classes('w-full mt-1'):
                     ui.switch('Autoscale', on_change=toggle_gain_plot_autoscale)\
                         .bind_value(tab, 'gain_plot_autoscale')

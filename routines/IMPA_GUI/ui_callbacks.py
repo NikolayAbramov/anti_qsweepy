@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import Future
-import time
+from nicegui import events
 
 import data_structures as ds
 import multiprocessing as mp
@@ -221,6 +221,57 @@ class UiCallbacks:
             tab.gain_fig['layout']['yaxis']['range'] = y_range
         tab.gain_fig['layout']['xaxis']['autorange'] = tab.gain_plot_autoscale
         tab.gain_fig['layout']['yaxis']['autorange'] = tab.gain_plot_autoscale
+        tab.gain_plot.update()
+
+    def handle_gain_plot_relayout(self, e: events.GenericEventArguments,  ch_id:int) -> None:
+        tab = self.ui_objects.channel_tabs[ch_id]
+        x_range = tab.gain_fig['layout']['xaxis']['range']
+        y_range = tab.gain_fig['layout']['yaxis']['range']
+
+        try:
+            if e.args['xaxis.autorange'] and e.args['yaxis.autorange'] :
+                S21_trace_id = self.ui_objects.gain_plot_traces.vna_s21
+                gain_trace_id = self.ui_objects.gain_plot_traces.file_gain
+                snr_gain_trace_id = self.ui_objects.gain_plot_traces.file_snr_gain
+                for idx, trace_id in enumerate([S21_trace_id, gain_trace_id, snr_gain_trace_id]):
+                    x_data = np.array(tab.gain_fig['data'][trace_id]['x'])
+                    y_data = np.array(tab.gain_fig['data'][trace_id]['y'])
+                    if len(x_data) and len(y_data):
+                        xmax = np.max(x_data)
+                        xmin = np.min(x_data)
+                        ymax = np.max(y_data)
+                        ymin = np.min(y_data)
+                        if not idx:
+                            x_range[0] = xmin
+                            x_range[1] = xmax
+                            y_range[0] = ymin
+                            y_range[1] = ymax
+                        else:
+                            if xmax > x_range[1]: x_range[1] = xmax
+                            if xmin < x_range[0]: x_range[0] = xmin
+                            if ymax > y_range[1]: y_range[1] = ymax
+                            if ymin < y_range[0]: y_range[0] = ymin
+                tab.gain_plot.update()
+                return
+        except KeyError:
+            pass
+
+        try:
+            y_range[0] = e.args['yaxis.range[0]']
+        except KeyError:
+            pass
+        try:
+            y_range[1] = e.args['yaxis.range[1]']
+        except KeyError:
+            pass
+        try:
+            x_range[0] = e.args['xaxis.range[0]']
+        except KeyError:
+            pass
+        try:
+            x_range[1] = e.args['xaxis.range[1]']
+        except KeyError:
+            pass
         tab.gain_plot.update()
 
     def browse_gain_file_left(self, ch_id: int):

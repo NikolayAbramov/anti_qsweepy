@@ -6,9 +6,12 @@ from config_handler import ConfigHandler
 import data_structures as ds
 from nicegui import ui
 import multiprocessing as mp
-
+import subprocess
 
 if __name__ == "__main__":
+    # Set environmental variable to enable simultaneous access to HDF5 data files
+    subprocess.run("setx HDF5_USE_FILE_LOCKING \"FALSE\"")
+
     q_command = mp.Queue(maxsize=100)
     q_feedback = mp.Queue(maxsize=100)
 
@@ -28,6 +31,7 @@ if __name__ == "__main__":
     ui.timer(0.01, fp.check_queue)
 
     ui_cb.connect_devices()
+    # VNA data request timer, s
     ui.timer(0.1, ui_cb.request_vna_data)
     
     ui.run( port=ui_objects.tcp_ip_port, reload=False)

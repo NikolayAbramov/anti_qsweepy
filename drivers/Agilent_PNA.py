@@ -13,6 +13,7 @@ class NetworkAnalyzer(VisaInstrument):
         self.instr.write('SENS:AVER:MODE POIN')
         self._abort = False
         self._ch = 0
+        self._soft_trig = False
 
     def channel(self, val=None):
         """Set active channel. There is only one channel 0 on this device."""
@@ -24,6 +25,7 @@ class NetworkAnalyzer(VisaInstrument):
     def preset(self) -> None:
         """Reset instrument to default state"""
         self.instr.write('SYST:PRES')
+        self._soft_trig = False
 
     def abort(self) -> None:
         """Abort read_data() thread"""
@@ -45,21 +47,24 @@ class NetworkAnalyzer(VisaInstrument):
         return resp.split(',')[1]
 
     def soft_trig_arm(self):
+        self.instr.write("*CLS")
         self.instr.write("TRIG:SOUR MAN")
         self.instr.write("*ESE 1")
         self.instr.write("SENS:AVER:MODE POIN")
+        self._soft_trig = True
 
     def read_data(self):
-        # Clear status, initiate measurement
-        self.instr.write("*CLS")
-        self.instr.write("INIT:IMM")
-        self.instr.write("*OPC")
-        # Set bit in ESR when operation complete
-        while int(self.instr.query("*ESR?")) == 0:
-            if self._abort:
-                self._abort = False
-                return array(())
-            time.sleep(0.002)
+        if self._soft_trig:
+            #Clear status, initiate measurement
+            self.instr.write("*CLS")
+            self.instr.write("INIT:IMM")
+            self.instr.write("*OPC")
+            # Set bit in ESR when operation complete
+            while int(self.instr.query("*ESR?")) == 0:
+                if self._abort:
+                    self._abort = False
+                    return array(())
+                time.sleep(0.002)
         data = self.instr.query_binary_values("CALC:DATA? SDATA", datatype=u'f')
         data_size = size(data)
         return array(data[0:data_size:2]) + 1.j * array(data[1:data_size:2])
@@ -67,6 +72,7 @@ class NetworkAnalyzer(VisaInstrument):
     def soft_trig_abort(self):
         self.instr.write("ABOR")
         self.instr.write("TRIG:SOUR IMM")
+        self._soft_trig = False
 
     def power(self, val=None):
         return float(self.write_or_query("SOUR:POW", val, "{:f}"))
