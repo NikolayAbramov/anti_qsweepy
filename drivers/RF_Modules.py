@@ -27,13 +27,27 @@ class RxBufferOverrun(Exception):
         msg = 'Try again'
         super().__init__(msg)
 
+
 class BACKENDS(Enum):
     WAVESHARE_USB_CAN_A = 1
     PYTHON_CAN_GS_USB = 2
 
 class TX:
+    """ Driver for the upconverting modules controlled via CAN
+
+    When calling constructor to replace an existing object Please use del to delete it first:
+
+    try:
+        del obj
+    except:
+        pass
+    obj  = TX()
+
+    Otherwise, driver will be kept locked and the new object will not work.
+    """
     def __init__(self, addr:str, backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A):
         self.timeout = 1
+        self.n_try = 3
         filters = {"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID}
         if backend is BACKENDS.WAVESHARE_USB_CAN_A:
             from anti_qsweepy.drivers.rf_modules.waveshare_usb_can_a import WaveshareUSB_CAN_A
@@ -44,7 +58,8 @@ class TX:
         self.flush_rx_buffer()
 
     def flush_rx_buffer(self, module_id: int|None = None, param_id: int|None = None) -> tuple[int,bytes|None]:
-        """Flush RX buffer of the adapter and try to find lost message if corresponding parameters of the function are provided"""
+        """Flush RX buffer of the adapter and try to find lost message if corresponding parameters of the function are
+        provided"""
         msg_flushed = 0
         self.backend.timeout = 0.1
         data_recovered = None
@@ -198,32 +213,47 @@ class TX:
         return None
 
     def _write(self, module_id: int, param_id: PARAM_ID, data: int | None = None, size: int | None = None) -> None:
-        read = 0
-        if data is not None:
-            data = int(data).to_bytes(size, 'little') + ((int(param_id) << 1) + read).to_bytes(1)
-        else:
-            data = ((int(param_id) << 1) + read).to_bytes(1)
-        self.backend.send(module_id, data)
-        can_id_resp, data_resp = self.backend.receive()
-        if can_id_resp is not None:
+        for try_id in range(self.n_try):
             try:
-                self._validate_response(module_id, param_id, can_id_resp, data_resp)
-            except RxBufferOverrun:
-                warnings.warn('RxBufferOverrun exception occurred during write to module {0}!'.format(module_id))
-        else:
-            raise NoResponse(module_id)
+                read = 0
+                if data is not None:
+                    data_send = int(data).to_bytes(size, 'little') + ((int(param_id) << 1) + read).to_bytes(1)
+                else:
+                    data_send = ((int(param_id) << 1) + read).to_bytes(1)
+                self.backend.send(module_id, data_send)
+                can_id_resp, data_resp = self.backend.receive()
+                if can_id_resp is not None:
+                    try:
+                        self._validate_response(module_id, param_id, can_id_resp, data_resp)
+                    except RxBufferOverrun:
+                        warnings.warn('RxBufferOverrun exception occurred during write to module {0}!'.format(module_id))
+                else:
+                    raise NoResponse(module_id)
+                break
+            except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
+                if try_id < self.n_try-1:
+                    pass
+                else:
+                    raise exc
 
     def _read(self, module_id: int, param_id: PARAM_ID, size: int) -> int:
-        read = 1
-        data = ((int(param_id) << 1) + read).to_bytes(1)
+        for try_id in range(self.n_try):
+            try:
+                read = 1
+                data = ((int(param_id) << 1) + read).to_bytes(1)
 
-        self.backend.send(module_id, data)
-        can_id_resp, data_resp = self.backend.receive()
-        if can_id_resp is not None:
-            data_recovered = self._validate_response(module_id, param_id, can_id_resp, data_resp)
-            if data_recovered is not None:
-                data_resp = data_recovered
-            value = int.from_bytes(data_resp[0:size], 'little')
-            return value
-        else:
-            raise NoResponse(module_id)
+                self.backend.send(module_id, data)
+                can_id_resp, data_resp = self.backend.receive()
+                if can_id_resp is not None:
+                    data_recovered = self._validate_response(module_id, param_id, can_id_resp, data_resp)
+                    if data_recovered is not None:
+                        data_resp = data_recovered
+                    value = int.from_bytes(data_resp[0:size], 'little')
+                    return value
+                else:
+                    raise NoResponse(module_id)
+            except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
+                if try_id < self.n_try-1:
+                    pass
+                else:
+                    raise exc
