@@ -195,16 +195,17 @@ class BoolUIParameter(UIParameter):
         else:
             self.str_repr = self.str_false
 
-    def update(self, val: bool | str) -> None:
+    def update(self, val: bool | str | int | float) -> None:
         if type(val) == bool:
             self.value = val
-            self.update_str()
+        elif type(val) == int or type(val) == float:
+            self.value = bool(val)
         elif type(val) == str:
             val = val.lower()
             if val not in [self.str_false.lower(), self.str_true.lower()]:
                 raise ValueError('Invalid string!')
-            self.value = val == self.str_true.lower()
-            self.update_str()
+            self.value = (val == self.str_true.lower())
+        self.update_str()
 
     def get_value(self) -> bool:
         return self.value

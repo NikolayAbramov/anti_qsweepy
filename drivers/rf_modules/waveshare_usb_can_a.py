@@ -1,5 +1,6 @@
 import serial
 from enum import IntEnum
+from anti_qsweepy.drivers.rf_modules.exceptions import *
 
 class CAN_SPEED(IntEnum):
     SPEED_1000000 = 1000000
@@ -139,10 +140,14 @@ class WaveshareUSB_CAN_A:
         self.dev.timeout = self.timeout
         resp = self.dev.read( SERIAL_DATA_SIZE )
         if len(resp):
+            if resp[0] != 0xAA or resp[1] != 0x55:
+                raise BackendRxFault
             can_id = int.from_bytes( resp[5:9], 'little' )
             length = resp[9]
             #print(resp)
             #print(length)
             data = resp[10:10+length]
+            if len(data) == 0:
+                print (resp)
             return can_id, data
         return None, None

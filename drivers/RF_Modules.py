@@ -2,31 +2,7 @@ import warnings
 from enum import Enum
 
 from anti_qsweepy.drivers.rf_modules.definitions import *
-
-
-class NoResponse(Exception):
-    def __init__(self, module_id: int):
-        msg = 'Module ID: '+str(module_id)
-        super().__init__(msg)
-
-
-class BadResponseModuleID(Exception):
-    def __init__(self, module_id: int, actual_id: int):
-        msg = 'Module ID must be {0} , got {1} instead'.format(module_id, actual_id)
-        super().__init__(msg)
-
-
-class BadResponseParamID(Exception):
-    def __init__(self, module_id: int, param_id: int, actual_param_id: int):
-        msg = 'Module ID: {0}. Parameter ID must be {1} , got {2} instead'.format(module_id, param_id, actual_param_id)
-        super().__init__(msg)
-
-
-class RxBufferOverrun(Exception):
-    def __init__(self):
-        msg = 'Try again'
-        super().__init__(msg)
-
+from anti_qsweepy.drivers.rf_modules.exceptions import *
 
 class BACKENDS(Enum):
     WAVESHARE_USB_CAN_A = 1
@@ -46,16 +22,21 @@ class TX:
     Otherwise, driver will be kept locked and the new object will not work.
     """
     def __init__(self, addr:str, backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A):
+        self._addr = addr
+        self._backend_type = backend
         self.timeout = 1
         self.n_try = 3
+        self._open_backend()
+        self.flush_rx_buffer()
+
+    def _open_backend(self):
         filters = {"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID}
-        if backend is BACKENDS.WAVESHARE_USB_CAN_A:
+        if self._backend_type is BACKENDS.WAVESHARE_USB_CAN_A:
             from anti_qsweepy.drivers.rf_modules.waveshare_usb_can_a import WaveshareUSB_CAN_A
-            self.backend = WaveshareUSB_CAN_A(addr, 2000000, 500000)
-        elif backend is BACKENDS.PYTHON_CAN_GS_USB:
+            self.backend = WaveshareUSB_CAN_A(self._addr, 2000000, 500000)
+        elif self._backend_type is BACKENDS.PYTHON_CAN_GS_USB:
             from anti_qsweepy.drivers.rf_modules.python_can_backend import PythonCAN_GS_USB_Backend
             self.backend = PythonCAN_GS_USB_Backend(filters)
-        self.flush_rx_buffer()
 
     def flush_rx_buffer(self, module_id: int|None = None, param_id: int|None = None) -> tuple[int,bytes|None]:
         """Flush RX buffer of the adapter and try to find lost message if corresponding parameters of the function are
@@ -63,7 +44,7 @@ class TX:
         msg_flushed = 0
         self.backend.timeout = 0.1
         data_recovered = None
-        for _ in range(100):
+        for _ in range(10000):
             can_id, data = self.backend.receive()
             if can_id is None:
                 break
@@ -235,6 +216,13 @@ class TX:
                     pass
                 else:
                     raise exc
+            except BackendRxFault as exc:
+                if try_id < self.n_try - 1:
+                    self.backend.close()
+                    self._open_backend()
+                    self.flush_rx_buffer()
+                else:
+                    raise exc
 
     def _read(self, module_id: int, param_id: PARAM_ID, size: int) -> int:
         for try_id in range(self.n_try):
@@ -255,5 +243,12 @@ class TX:
             except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
                 if try_id < self.n_try-1:
                     pass
+                else:
+                    raise exc
+            except BackendRxFault as exc:
+                if try_id < self.n_try - 1:
+                    self.backend.close()
+                    self._open_backend()
+                    self.flush_rx_buffer()
                 else:
                     raise exc
