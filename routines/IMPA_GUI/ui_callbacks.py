@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import Future
-import time
+from nicegui import events
 
 import data_structures as ds
 import multiprocessing as mp
@@ -48,11 +48,18 @@ class UiCallbacks:
 
     def setup_devices(self) -> None:
         num_ch = len(self.ui_objects.channel_tabs)
+        vna_entries = []
         for ch_id in range(num_ch):
             chan = self.ui_objects.channel_tabs[ch_id].chan
             for f in fields(chan):
                 attr = getattr(chan, f.name)
                 if ds.Device in type(attr).mro():
+                    if type(attr) is ds.VNA:
+                        # VNA is a complicated device so it's better to reset setting to default first
+                        vna_entry = [attr.driver_name,attr.class_name,attr.address]
+                        if vna_entry not in vna_entries:
+                            self.q_command.put({'op': 'vna_preset', 'args': (ch_id,)})
+                            vna_entries += vna_entry
                     self.setup_device(attr, ch_id)
 
     def connect_devices(self):
@@ -216,6 +223,57 @@ class UiCallbacks:
         tab.gain_fig['layout']['yaxis']['autorange'] = tab.gain_plot_autoscale
         tab.gain_plot.update()
 
+    def handle_gain_plot_relayout(self, e: events.GenericEventArguments,  ch_id:int) -> None:
+        tab = self.ui_objects.channel_tabs[ch_id]
+        x_range = tab.gain_fig['layout']['xaxis']['range']
+        y_range = tab.gain_fig['layout']['yaxis']['range']
+
+        try:
+            if e.args['xaxis.autorange'] and e.args['yaxis.autorange'] :
+                S21_trace_id = self.ui_objects.gain_plot_traces.vna_s21
+                gain_trace_id = self.ui_objects.gain_plot_traces.file_gain
+                snr_gain_trace_id = self.ui_objects.gain_plot_traces.file_snr_gain
+                for idx, trace_id in enumerate([S21_trace_id, gain_trace_id, snr_gain_trace_id]):
+                    x_data = np.array(tab.gain_fig['data'][trace_id]['x'])
+                    y_data = np.array(tab.gain_fig['data'][trace_id]['y'])
+                    if len(x_data) and len(y_data):
+                        xmax = np.max(x_data)
+                        xmin = np.min(x_data)
+                        ymax = np.max(y_data)
+                        ymin = np.min(y_data)
+                        if not idx:
+                            x_range[0] = xmin
+                            x_range[1] = xmax
+                            y_range[0] = ymin
+                            y_range[1] = ymax
+                        else:
+                            if xmax > x_range[1]: x_range[1] = xmax
+                            if xmin < x_range[0]: x_range[0] = xmin
+                            if ymax > y_range[1]: y_range[1] = ymax
+                            if ymin < y_range[0]: y_range[0] = ymin
+                tab.gain_plot.update()
+                return
+        except KeyError:
+            pass
+
+        try:
+            y_range[0] = e.args['yaxis.range[0]']
+        except KeyError:
+            pass
+        try:
+            y_range[1] = e.args['yaxis.range[1]']
+        except KeyError:
+            pass
+        try:
+            x_range[0] = e.args['xaxis.range[0]']
+        except KeyError:
+            pass
+        try:
+            x_range[1] = e.args['xaxis.range[1]']
+        except KeyError:
+            pass
+        tab.gain_plot.update()
+
     def browse_gain_file_left(self, ch_id: int):
         tab = self.ui_objects.channel_tabs[ch_id]
         if tab.gain_file.backward():
@@ -336,6 +394,10 @@ class UiCallbacks:
         else:
             tab.chan.vna.is_connected.enabled = False
 
+    def vna_sync(self,ch_id):
+        self.q_command.put({'op': 'vna_preset', 'args': (ch_id,)})
+        self.setup_device( self.ui_objects.channel_tabs[ch_id].chan.vna, ch_id)
+
     def bind_pump_freq_to_vna_center(self, ch_id):
         ch_tab = self.ui_objects.channel_tabs[ch_id]
         p = ch_tab.chan.vna.center
@@ -444,7 +506,7 @@ class UiCallbacks:
                 return
             if self._queue_command('start_optimization', (data,)):
                 ch.optimization.is_running.enabled = False
-                self.conf_h.save_optinization_config()
+                self.conf_h.save_optimization_config()
             else:
                 tab.log.push("Error: failed to start optimization.")
         else:

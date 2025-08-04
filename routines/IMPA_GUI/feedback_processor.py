@@ -88,8 +88,8 @@ class FeedbackProcessor:
                 ch.bias_sweep.is_running.enabled = not val
                 ch.optimization.is_running.enabled = not val
 
-    def set_vna_measurement_type(self, val: str, ui_ch: int) -> None:
-        pass
+    def set_vna_measurement_type(self, val: str, ch_id: int) -> None:
+        self._update_param(self.ui_objects.channel_tabs[ch_id].chan.vna.measurement_type, val)
 
     def set_vna_power(self, val: float, ch_id: int) -> None:
         self._update_param(self.ui_objects.channel_tabs[ch_id].chan.vna.power, val)

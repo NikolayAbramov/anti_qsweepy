@@ -27,6 +27,9 @@ class CurrentSource:
     def channels(self) -> int:
         return self._n_ch
 
+    def preset(self):
+        pass
+
     def setpoint(self, val: float = None) -> float:
         return self._query_or_write('_setpoint', val)
 

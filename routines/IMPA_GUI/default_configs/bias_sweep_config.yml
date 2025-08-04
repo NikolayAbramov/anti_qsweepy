@@ -1,6 +1,6 @@
 #Bias sweep parameters
 channels:
-- name: !!str Channel 0
+- name: Channel 0
   parameters:
     bias_start: 0
     bias_stop: 10e-3

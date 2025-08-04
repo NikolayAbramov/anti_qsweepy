@@ -1,4 +1,5 @@
 from nicegui import ui
+from nicegui import events
 from typing import Callable
 import data_structures as ds
 import ui_callbacks as ui_cb
@@ -55,7 +56,6 @@ class UiGenerator:
             # Control tab
             with ui.tab_panel(control_tab):
                 with ui.column():
-                    ui.switch('VNA')
                     ui.button('Save configuration', on_click=self.ch.save_config) \
                         .classes('text-xs mt-1 ml-1') \
                         .tooltip('')
@@ -71,6 +71,11 @@ class UiGenerator:
         toggle_gain_plot_autoscale = lambda: self.cb.toggle_gain_plot_autoscale(ch_id)
         browse_gain_file_left = lambda: self.cb.browse_gain_file_left(ch_id)
         browse_gain_file_right = lambda: self.cb.browse_gain_file_right(ch_id)
+
+        def on_gain_plot_relayout(e:events.GenericEventArguments) -> None:
+            ui.notify(e)
+            self.cb.handle_gain_plot_relayout( e, ch_id)
+
         pick_bias_sweep_file = lambda: self.cb.pick_bias_sweep_file(ch_id)
         update_bias_sweep_plot_from_file = lambda: self.cb.update_bias_sweep_plot_from_file(ch_id,
                                                                                          cb_autoscale=False)
@@ -80,7 +85,8 @@ class UiGenerator:
         with ui.row(wrap=False).classes('w-full'):
             # Gain plot
             with ui.column().classes('w-1/3'):
-                tab.gain_plot = ui.plotly(tab.gain_fig).classes('mr-2 w-full aspect-square')
+                tab.gain_plot = ui.plotly(tab.gain_fig).classes('mr-2 w-full aspect-square')\
+                                .on('plotly_relayout', on_gain_plot_relayout )
                 with ui.row().classes('w-full mt-1'):
                     ui.switch('Autoscale', on_change=toggle_gain_plot_autoscale)\
                         .bind_value(tab, 'gain_plot_autoscale')
@@ -159,11 +165,13 @@ class UiGenerator:
             ui.switch('Pump')\
                 .bind_value_from(self.ui_objects.channel_tabs[ch_id].chan.pump_source.output, 'value')\
                 .bind_enabled(self.ui_objects.channel_tabs[ch_id].chan.pump_source.output, 'enabled')\
-                .on('click', toggle_pump_output_cb)
+                .on('click', toggle_pump_output_cb)\
+                .tooltip("Pump ON/OFF")
             ui.switch('Bias') \
                 .bind_value_from(self.ui_objects.channel_tabs[ch_id].chan.bias_source.output, 'value')\
                 .bind_enabled(self.ui_objects.channel_tabs[ch_id].chan.bias_source.output, 'enabled')\
-                .on('click', toggle_bias_output_cb)
+                .on('click', toggle_bias_output_cb) \
+                .tooltip("Bias ON/OFF")
         self._create_inp_w_step_and_btns(ch_id, tab.chan.pump_source.frequency,
                                          callback=self.cb.set_pump_freq,
                                          inc_callback=self.cb.inc_pump_freq,
@@ -174,24 +182,27 @@ class UiGenerator:
             ui.switch('Normalize') \
                 .bind_value(tab.chan.vna.normalize, 'value') \
                 .bind_enabled(tab.chan.vna.normalize, 'enabled') \
-                .classes('mt-2')
+                .classes('mt-2')\
+                .tooltip('Normalize gain plot to current data')
 
     def _fill_vna_tab(self, ch_id: int) -> None:
         ch = self.ui_objects.channel_tabs[ch_id].chan
         # Callbacks
         connect_btn_cb = lambda: self.cb.toggle_vna_connection(ch_id)
-        bandwidth_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.bandwidth)
-        span_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.span)
-        center_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.center)
+        preset_btn_cb = lambda: self.cb.vna_sync(ch_id)
         pump_center_bind_cb = lambda: self.cb.bind_pump_freq_to_vna_center(ch_id)
-        points_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.points)
-        power_cb = lambda: self.cb.change_float_param(ch_id, ch.vna.power)
+
         with ui.column():
-            # Connect/disconnect button
-            ui.button('Connect', on_click=connect_btn_cb) \
-                .bind_enabled(ch.vna.is_connected, 'enabled') \
-                .bind_text(ch.vna.is_connected, 'str_repr') \
-                .classes('w-28')
+            with ui.row():
+                # Connect/disconnect button
+                ui.button('Connect', on_click=connect_btn_cb) \
+                    .bind_enabled(ch.vna.is_connected, 'enabled') \
+                    .bind_text(ch.vna.is_connected, 'str_repr') \
+                    .classes('w-28')
+                ui.button('Sync', on_click=preset_btn_cb) \
+                    .bind_enabled(ch.vna.is_connected, 'enabled') \
+                    .classes('w-28 ml-2')\
+                    .tooltip("Reset VNA to default state and load actual parameters")
             # Bandwidth input
             with ui.row(wrap=False):
                 self._create_instrumental_parameter_input(ch.vna.bandwidth, ch_id)
@@ -201,7 +212,8 @@ class UiGenerator:
                 ui.switch('Bind pump', on_change=pump_center_bind_cb) \
                     .bind_value(ch.vna.pump_center_bind, 'value')\
                     .bind_enabled(ch.vna.pump_center_bind, 'enabled')\
-                    .classes('mt-2')
+                    .classes('mt-2')\
+                    .tooltip("Make center_freq = pump_freq/2")
             # Span input
             with ui.row(wrap=False):
                 self._create_instrumental_parameter_input(ch.vna.span, ch_id)

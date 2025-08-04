@@ -1,56 +1,23 @@
-import can
 import warnings
+from enum import Enum
 
 from anti_qsweepy.drivers.rf_modules.definitions import *
+from anti_qsweepy.drivers.rf_modules.exceptions import *
+from anti_qsweepy.drivers.rf_modules.device import Device
 
+class TX(Device):
+    """ Driver for the upconverting modules controlled via CAN
 
-class NoResponse(Exception):
-    def __init__(self, module_id: int):
-        msg = 'Module ID: '+str(module_id)
-        super().__init__(msg)
+    When calling constructor to replace an existing object Please use del to delete it first:
 
+    try:
+        del obj
+    except:
+        pass
+    obj  = TX()
 
-class BadResponseModuleID(Exception):
-    def __init__(self, module_id: int, actual_id: int):
-        msg = 'Module ID must be {0} , got {1} instead'.format(module_id, actual_id)
-        super().__init__(msg)
-
-
-class BadResponseParamID(Exception):
-    def __init__(self, module_id: int, param_id: int, actual_param_id: int):
-        msg = 'Module ID: {0}. Parameter ID must be {1} , got {2} instead'.format(module_id, param_id, actual_param_id)
-        super().__init__(msg)
-
-
-class RxBufferOverrun(Exception):
-    def __init__(self):
-        msg = 'Try again'
-        super().__init__(msg)
-
-
-class TX:
-    def __init__(self):
-        self.timeout = 1
-        filters = [{"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID, "extended": False}, ]
-        self.bus = can.Bus(interface="gs_usb", channel=0x606F, index=0, bitrate=500000, can_filters=filters)
-        self.flush_rx_buffer()
-
-    def flush_rx_buffer(self) -> int:
-        msg_flushed = 0
-        for _ in range(10):
-            msg = self.bus.recv(timeout=0.1)
-            if msg is None:
-                break
-            else:
-                msg_flushed += 1
-        return msg_flushed
-
-    def __del__(self):
-        self.bus.shutdown()
-        self.bus.gs_usb.gs_usb.reset()
-
-    def module_id(self, module_id: int):
-        self._write(module_id, PARAM_ID.MODULE_ID)
+    Otherwise, driver will be kept locked and the new object will not work.
+    """
 
     @staticmethod
     def _mixer_offset_dac_code(val: float) -> int:
@@ -78,11 +45,11 @@ class TX:
         if offsets is not None:
             int_offset_0 = self._mixer_offset_dac_code(offsets[0])
             int_offset_1 = self._mixer_offset_dac_code(offsets[1])
-            param_id = PARAM_ID.MIXER_OFFSETS
+            param_id = TX_PARAM_ID.MIXER_OFFSETS
             dac_data = int_offset_0 + (int_offset_1 << 12)
             self._write(module_id, param_id, dac_data, 3)
         else:
-            offsets_data = self._read(module_id, PARAM_ID.MIXER_OFFSETS, 3)
+            offsets_data = self._read(module_id, TX_PARAM_ID.MIXER_OFFSETS, 3)
             offset_0 = self._mixer_offset_norm( offsets_data & 0xFFF )
             offset_1 = self._mixer_offset_norm( offsets_data >> 12 )
             offsets = (offset_0, offset_1)
@@ -98,9 +65,9 @@ class TX:
                 code = BIAS_DAC_MAX
             if code<0:
                 code = 0
-            self._write(module_id, PARAM_ID.BIAS, code, 2)
+            self._write(module_id, TX_PARAM_ID.BIAS, code, 2)
         else:
-            code = self._read(module_id, PARAM_ID.BIAS, 2)
+            code = self._read(module_id, TX_PARAM_ID.BIAS, 2)
             val = BIAS_DAC_VREF*code/(BIAS_DAC_MAX+1) - BIAS_DAC_VREF/2
         return val
 
@@ -108,9 +75,9 @@ class TX:
         """Choose between internal bias if False and external bias if True"""
 
         if state is not None:
-            self._write(module_id, PARAM_ID.BIAS_SELECT, int(state), 1)
+            self._write(module_id, TX_PARAM_ID.BIAS_SELECT, int(state), 1)
         else:
-            state = bool(self._read(module_id, PARAM_ID.BIAS_SELECT, 1))
+            state = bool(self._read(module_id, TX_PARAM_ID.BIAS_SELECT, 1))
         return state
 
     def lo_amp_pwr(self, module_id: int, state: bool | None = None) -> bool:
@@ -119,9 +86,9 @@ class TX:
         This function is useless.You may not use it at all."""
 
         if state is not None:
-            self._write(module_id, PARAM_ID.LO_AMP_PWR, int(state), 1)
+            self._write(module_id, TX_PARAM_ID.LO_AMP_PWR, int(state), 1)
         else:
-            state = bool(self._read(module_id, PARAM_ID.LO_AMP_PWR, 1))
+            state = bool(self._read(module_id, TX_PARAM_ID.LO_AMP_PWR, 1))
         return state
 
     def mixer_bypass(self, module_id: int, state: bool | None = None) -> bool:
@@ -130,9 +97,9 @@ class TX:
         Bypass mode intended to be used for spectroscopy. In this mode LO signal is
         passes to the output bypassing the mixer."""
         if state is not None:
-            self._write(module_id, PARAM_ID.MIXER_BYPASS, int(state), 1)
+            self._write(module_id, TX_PARAM_ID.MIXER_BYPASS, int(state), 1)
         else:
-            state = bool(self._read(module_id, PARAM_ID.MIXER_BYPASS, 1))
+            state = bool(self._read(module_id, TX_PARAM_ID.MIXER_BYPASS, 1))
         return state
 
     def rf_output(self, module_id: int, state: bool | None = None) -> bool:
@@ -141,9 +108,9 @@ class TX:
         Does not affect DC bias.
         """
         if state is not None:
-            self._write(module_id, PARAM_ID.RF_OUTPUT, int(state), 1)
+            self._write(module_id, TX_PARAM_ID.RF_OUTPUT, int(state), 1)
         else:
-            state = bool(self._read(module_id, PARAM_ID.RF_OUTPUT, 1))
+            state = bool(self._read(module_id, TX_PARAM_ID.RF_OUTPUT, 1))
         return state
 
     def lo_attenuation(self, module_id: int, val: float | None = None) -> float:
@@ -159,51 +126,41 @@ class TX:
                 code = LO_ATT_MAX
             if code < 0:
                 code = 0
-            self._write(module_id, PARAM_ID.LO_ATT, code, 1)
+            self._write(module_id, TX_PARAM_ID.LO_ATT, code, 1)
         else:
-            code = self._read(module_id, PARAM_ID.LO_ATT, 1)
+            code = self._read(module_id, TX_PARAM_ID.LO_ATT, 1)
         val = code * LO_ATT_STEP
         return val
 
-    def _validate_response(self, module_id: int, param_id: int, msg: can.Message) -> None:
-        actual_param_id = msg.data[-1] >> 1
-        actual_module_id = msg.arbitration_id - CAN_RESPONSE_BASE_ID
-        if actual_param_id != param_id or actual_module_id != module_id:
-            msg_flushed = self.flush_rx_buffer()
-            if msg_flushed > 0:
-                raise RxBufferOverrun
-            else:
-                if actual_param_id != param_id:
-                    raise BadResponseParamID(module_id, param_id, actual_param_id)
-                if actual_module_id != module_id:
-                    raise BadResponseModuleID(module_id, actual_module_id)
+class RX(Device):
+    """ Driver for the downconverting modules controlled via CAN
 
-    def _write(self, module_id: int, param_id: PARAM_ID, data: int | None = None, size: int | None = None) -> None:
-        read = 0
-        if data is not None:
-            data = int(data).to_bytes(size, 'little') + ((int(param_id) << 1) + read).to_bytes(1)
-        else:
-            data = ((int(param_id) << 1) + read).to_bytes(1)
-        msg = can.Message(arbitration_id=module_id, data=data, is_extended_id=False)
-        self.bus.send(msg, timeout=self.timeout)
-        msg = self.bus.recv(timeout=self.timeout)
-        if msg is not None:
-            try:
-                self._validate_response(module_id, param_id, msg)
-            except RxBufferOverrun:
-                warnings.warn('RxBufferOverrun exception occurred during write to module {0}!'.format(module_id))
-        else:
-            raise NoResponse(module_id)
+    When calling constructor to replace an existing object, please use del to delete it first:
 
-    def _read(self, module_id: int, param_id: PARAM_ID, size: int) -> int:
-        read = 1
-        data = ((int(param_id) << 1) + read).to_bytes(1)
-        msg = can.Message(arbitration_id=module_id, data=data, is_extended_id=False)
-        self.bus.send(msg, timeout=self.timeout)
-        msg = self.bus.recv(timeout=self.timeout)
-        if msg is not None:
-            self._validate_response(module_id, param_id, msg)
-            value = int.from_bytes(msg.data[0:size], 'little')
-            return value
+    try:
+        del obj
+    except:
+        pass
+    obj  = TX()
+
+    Otherwise, the driver will be kept locked and the new object will not work.
+    """
+    def input_attenuation(self, module_id: int, val: float | None = None):
+        """Set or get input attenuation in dB"""
+        if val is not None:
+            code = int( round(val/RX_INP_ATT_STEP) )
+            if code > RX_INP_ATT_MAX_CODE:
+                code = RX_INP_ATT_MAX_CODE
+            if code < 0:
+                code = 0
+            self._write(module_id, RX_PARAM_ID.INP_ATT, code, 1)
         else:
-            raise NoResponse(module_id)
+            code = self._read(module_id, RX_PARAM_ID.INP_ATT, 1)
+        val = code * RX_INP_ATT_STEP
+        return val
+
+    def is_local(self, module_id: int):
+        """Get "local" status. If status is True, then the device is in "local" mode and inpt attenuation
+        is controlled by means of the onboard DIP switch SW2. In the "local" mode attempts to set input attenuation
+        will be ignored, but current value set by the DIP switch can be retrieved."""
+        return bool( self._read(module_id, RX_PARAM_ID.LOCAL, 1) )

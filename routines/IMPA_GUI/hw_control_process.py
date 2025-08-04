@@ -225,12 +225,17 @@ class HWCommandProcessor:
         for ui_ch in ui_ch_list:
             self.q.put({'op': 'disconnect_vna', 'args': (ui_ch,)})
 
+    def vna_preset(self, ui_ch: int) -> None:
+        if ui_ch in self.vna.keys():
+            phy_dev = self.vna[ui_ch]
+            phy_dev.dev_inst.preset()
+
     def set_vna_measurement_type(self, val: str, ui_ch: int) -> None:
         if ui_ch in self.vna.keys():
             phy_dev = self.vna[ui_ch]
             phy_dev.dev_inst.channel(phy_dev.chan)
             try:
-                phy_dev.dev_inst.measurement_type(val)
+                val = phy_dev.dev_inst.measurement_type(val)
             except Exception as err:
                 tb.print_exc()
                 self.q.put({'op': 'log_push', 'args': ('Failed to set VNA measurement type {:s}!\n'
@@ -298,7 +303,6 @@ class HWCommandProcessor:
 
     def get_vna_data(self, ui_ch) -> None:
         if ui_ch in self.vna.keys():
-            phy_dev = self.vna[ui_ch]
             if self.vna_read_data_future is None:
                 self.vna_read_data_future = self.executor.submit(self._get_vna_data, ui_ch)
             elif not self.vna_read_data_future.running():

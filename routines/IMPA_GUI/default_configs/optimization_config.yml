@@ -3,7 +3,7 @@ channels:
   - name: Channel 0
     parameters:
       # String expression. Unit: GHz
-      target_frequencies_list: !!str 7
+      target_frequencies_list: '7'
       # Unit: GHz
       target_frequency_start: 7
       target_frequency_stop: 7.5

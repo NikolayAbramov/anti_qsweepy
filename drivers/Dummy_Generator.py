@@ -20,6 +20,9 @@ class Generator:
     def channel(self, val = None):
         return self._query_or_write('_ch', val)
 
+    def preset(self):
+        pass
+
     def close(self):
         pass
 
