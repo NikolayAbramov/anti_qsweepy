@@ -4,7 +4,7 @@ from enum import IntEnum
 CAN_ADDRESS_BITS = 10
 CAN_ADDRESS_MAX = 2**CAN_ADDRESS_BITS-1
 CAN_RESPONSE_BASE_ID = 0x400
-CAN_BROADCAST_ID = 0
+CAN_BROADCAST_ID = 0x3FF
 
 MIXER_OFFSET_DAC_RESOLUTION = 12
 MIXER_OFFSET_DAC_MAX = 2**MIXER_OFFSET_DAC_RESOLUTION-1
@@ -17,9 +17,11 @@ BIAS_DAC_MAX = 2**BIAS_DAC_RESOLUTION-1
 LO_ATT_MAX = 63
 LO_ATT_STEP = 0.5
 
+RX_INP_ATT_MAX_CODE = 0x7F
+RX_INP_ATT_STEP = 0.25
 
 @enum.unique
-class PARAM_ID(IntEnum):
+class TX_PARAM_ID(IntEnum):
     MODULE_ID       = 0
     MIXER_OFFSETS   = 1
     BIAS            = 2
@@ -28,3 +30,18 @@ class PARAM_ID(IntEnum):
     LO_AMP_PWR      = 5
     MIXER_BYPASS    = 6
     RF_OUTPUT       = 7
+    DEVICE_TYPE     = 0x7F
+    DISCOVERY       = 0x7B
+
+@enum.unique
+class RX_PARAM_ID(IntEnum):
+    MODULE_ID       = 0
+    INP_ATT         = 1
+    LOCAL           = 2
+    DEVICE_TYPE     = 0x7F
+    DISCOVERY       = 0x7B
+
+@enum.unique
+class DEVICE_TYPE(IntEnum):
+    TX = 0
+    RX = 1

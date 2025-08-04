@@ -19,6 +19,10 @@ class BadResponseParamID(Exception):
         msg = 'Module ID: {0}. Parameter ID must be {1} , got {2} instead'.format(module_id, param_id, actual_param_id)
         super().__init__(msg)
 
+class BadResponseDevType(Exception):
+    def __init__(self, dev_type):
+        msg = 'Wrong device type {0}'.format(dev_type)
+        super().__init__(msg)
 
 class RxBufferOverrun(Exception):
     def __init__(self):

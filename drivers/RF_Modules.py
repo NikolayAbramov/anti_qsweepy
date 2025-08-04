@@ -3,12 +3,9 @@ from enum import Enum
 
 from anti_qsweepy.drivers.rf_modules.definitions import *
 from anti_qsweepy.drivers.rf_modules.exceptions import *
+from anti_qsweepy.drivers.rf_modules.device import Device
 
-class BACKENDS(Enum):
-    WAVESHARE_USB_CAN_A = 1
-    PYTHON_CAN_GS_USB = 2
-
-class TX:
+class TX(Device):
     """ Driver for the upconverting modules controlled via CAN
 
     When calling constructor to replace an existing object Please use del to delete it first:
@@ -21,47 +18,6 @@ class TX:
 
     Otherwise, driver will be kept locked and the new object will not work.
     """
-    def __init__(self, addr:str, backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A):
-        self._addr = addr
-        self._backend_type = backend
-        self.timeout = 1
-        self.n_try = 3
-        self._open_backend()
-        self.flush_rx_buffer()
-
-    def _open_backend(self):
-        filters = {"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID}
-        if self._backend_type is BACKENDS.WAVESHARE_USB_CAN_A:
-            from anti_qsweepy.drivers.rf_modules.waveshare_usb_can_a import WaveshareUSB_CAN_A
-            self.backend = WaveshareUSB_CAN_A(self._addr, 2000000, 500000)
-        elif self._backend_type is BACKENDS.PYTHON_CAN_GS_USB:
-            from anti_qsweepy.drivers.rf_modules.python_can_backend import PythonCAN_GS_USB_Backend
-            self.backend = PythonCAN_GS_USB_Backend(filters)
-
-    def flush_rx_buffer(self, module_id: int|None = None, param_id: int|None = None) -> tuple[int,bytes|None]:
-        """Flush RX buffer of the adapter and try to find lost message if corresponding parameters of the function are
-        provided"""
-        msg_flushed = 0
-        self.backend.timeout = 0.1
-        data_recovered = None
-        for _ in range(10000):
-            can_id, data = self.backend.receive()
-            if can_id is None:
-                break
-            # Try to find wat we need in a pile of frames
-            if module_id is not None and param_id is not None:
-                param_id_resp = data[-1] >> 1
-                module_id_resp = can_id - CAN_RESPONSE_BASE_ID
-                if param_id_resp == param_id and module_id_resp == module_id:
-                    data_recovered = data
-            else:
-                msg_flushed += 1
-        self.backend.timeout = self.timeout
-        return msg_flushed, data_recovered
-
-    def module_id(self, module_id: int):
-        """Identify module by initiating its green LED blinking"""
-        self._write(module_id, PARAM_ID.MODULE_ID)
 
     @staticmethod
     def _mixer_offset_dac_code(val: float) -> int:
@@ -89,11 +45,11 @@ class TX:
         if offsets is not None:
             int_offset_0 = self._mixer_offset_dac_code(offsets[0])
             int_offset_1 = self._mixer_offset_dac_code(offsets[1])
-            param_id = PARAM_ID.MIXER_OFFSETS
+            param_id = TX_PARAM_ID.MIXER_OFFSETS
             dac_data = int_offset_0 + (int_offset_1 << 12)
             self._write(module_id, param_id, dac_data, 3)
         else:
-            offsets_data = self._read(module_id, PARAM_ID.MIXER_OFFSETS, 3)
+            offsets_data = self._read(module_id, TX_PARAM_ID.MIXER_OFFSETS, 3)
             offset_0 = self._mixer_offset_norm( offsets_data & 0xFFF )
             offset_1 = self._mixer_offset_norm( offsets_data >> 12 )
             offsets = (offset_0, offset_1)
@@ -109,9 +65,9 @@ class TX:
                 code = BIAS_DAC_MAX
             if code<0:
                 code = 0
-            self._write(module_id, PARAM_ID.BIAS, code, 2)
+            self._write(module_id, TX_PARAM_ID.BIAS, code, 2)
         else:
-            code = self._read(module_id, PARAM_ID.BIAS, 2)
+            code = self._read(module_id, TX_PARAM_ID.BIAS, 2)
             val = BIAS_DAC_VREF*code/(BIAS_DAC_MAX+1) - BIAS_DAC_VREF/2
         return val
 
@@ -119,9 +75,9 @@ class TX:
         """Choose between internal bias if False and external bias if True"""
 
         if state is not None:
-            self._write(module_id, PARAM_ID.BIAS_SELECT, int(state), 1)
+            self._write(module_id, TX_PARAM_ID.BIAS_SELECT, int(state), 1)
         else:
-            state = bool(self._read(module_id, PARAM_ID.BIAS_SELECT, 1))
+            state = bool(self._read(module_id, TX_PARAM_ID.BIAS_SELECT, 1))
         return state
 
     def lo_amp_pwr(self, module_id: int, state: bool | None = None) -> bool:
@@ -130,9 +86,9 @@ class TX:
         This function is useless.You may not use it at all."""
 
         if state is not None:
-            self._write(module_id, PARAM_ID.LO_AMP_PWR, int(state), 1)
+            self._write(module_id, TX_PARAM_ID.LO_AMP_PWR, int(state), 1)
         else:
-            state = bool(self._read(module_id, PARAM_ID.LO_AMP_PWR, 1))
+            state = bool(self._read(module_id, TX_PARAM_ID.LO_AMP_PWR, 1))
         return state
 
     def mixer_bypass(self, module_id: int, state: bool | None = None) -> bool:
@@ -141,9 +97,9 @@ class TX:
         Bypass mode intended to be used for spectroscopy. In this mode LO signal is
         passes to the output bypassing the mixer."""
         if state is not None:
-            self._write(module_id, PARAM_ID.MIXER_BYPASS, int(state), 1)
+            self._write(module_id, TX_PARAM_ID.MIXER_BYPASS, int(state), 1)
         else:
-            state = bool(self._read(module_id, PARAM_ID.MIXER_BYPASS, 1))
+            state = bool(self._read(module_id, TX_PARAM_ID.MIXER_BYPASS, 1))
         return state
 
     def rf_output(self, module_id: int, state: bool | None = None) -> bool:
@@ -152,9 +108,9 @@ class TX:
         Does not affect DC bias.
         """
         if state is not None:
-            self._write(module_id, PARAM_ID.RF_OUTPUT, int(state), 1)
+            self._write(module_id, TX_PARAM_ID.RF_OUTPUT, int(state), 1)
         else:
-            state = bool(self._read(module_id, PARAM_ID.RF_OUTPUT, 1))
+            state = bool(self._read(module_id, TX_PARAM_ID.RF_OUTPUT, 1))
         return state
 
     def lo_attenuation(self, module_id: int, val: float | None = None) -> float:
@@ -170,85 +126,41 @@ class TX:
                 code = LO_ATT_MAX
             if code < 0:
                 code = 0
-            self._write(module_id, PARAM_ID.LO_ATT, code, 1)
+            self._write(module_id, TX_PARAM_ID.LO_ATT, code, 1)
         else:
-            code = self._read(module_id, PARAM_ID.LO_ATT, 1)
+            code = self._read(module_id, TX_PARAM_ID.LO_ATT, 1)
         val = code * LO_ATT_STEP
         return val
 
-    def _validate_response(self, module_id: int, param_id: int, can_id_resp: int, data_resp: bytes) -> bytes|None:
-        actual_param_id = data_resp[-1] >> 1
-        actual_module_id = can_id_resp - CAN_RESPONSE_BASE_ID
-        if actual_param_id != param_id or actual_module_id != module_id:
-            msg_flushed, data_recovered = self.flush_rx_buffer(module_id, param_id)
-            if data_recovered is None:
-                if msg_flushed > 0:
-                    raise RxBufferOverrun
-                else:
-                    if actual_param_id != param_id:
-                        raise BadResponseParamID(module_id, param_id, actual_param_id)
-                    if actual_module_id != module_id:
-                        raise BadResponseModuleID(module_id, actual_module_id)
-            else:
-                return data_recovered
-        return None
+class RX(Device):
+    """ Driver for the downconverting modules controlled via CAN
 
-    def _write(self, module_id: int, param_id: PARAM_ID, data: int | None = None, size: int | None = None) -> None:
-        for try_id in range(self.n_try):
-            try:
-                read = 0
-                if data is not None:
-                    data_send = int(data).to_bytes(size, 'little') + ((int(param_id) << 1) + read).to_bytes(1)
-                else:
-                    data_send = ((int(param_id) << 1) + read).to_bytes(1)
-                self.backend.send(module_id, data_send)
-                can_id_resp, data_resp = self.backend.receive()
-                if can_id_resp is not None:
-                    try:
-                        self._validate_response(module_id, param_id, can_id_resp, data_resp)
-                    except RxBufferOverrun:
-                        warnings.warn('RxBufferOverrun exception occurred during write to module {0}!'.format(module_id))
-                else:
-                    raise NoResponse(module_id)
-                break
-            except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
-                if try_id < self.n_try-1:
-                    pass
-                else:
-                    raise exc
-            except BackendRxFault as exc:
-                if try_id < self.n_try - 1:
-                    self.backend.close()
-                    self._open_backend()
-                    self.flush_rx_buffer()
-                else:
-                    raise exc
+    When calling constructor to replace an existing object, please use del to delete it first:
 
-    def _read(self, module_id: int, param_id: PARAM_ID, size: int) -> int:
-        for try_id in range(self.n_try):
-            try:
-                read = 1
-                data = ((int(param_id) << 1) + read).to_bytes(1)
+    try:
+        del obj
+    except:
+        pass
+    obj  = TX()
 
-                self.backend.send(module_id, data)
-                can_id_resp, data_resp = self.backend.receive()
-                if can_id_resp is not None:
-                    data_recovered = self._validate_response(module_id, param_id, can_id_resp, data_resp)
-                    if data_recovered is not None:
-                        data_resp = data_recovered
-                    value = int.from_bytes(data_resp[0:size], 'little')
-                    return value
-                else:
-                    raise NoResponse(module_id)
-            except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
-                if try_id < self.n_try-1:
-                    pass
-                else:
-                    raise exc
-            except BackendRxFault as exc:
-                if try_id < self.n_try - 1:
-                    self.backend.close()
-                    self._open_backend()
-                    self.flush_rx_buffer()
-                else:
-                    raise exc
+    Otherwise, the driver will be kept locked and the new object will not work.
+    """
+    def input_attenuation(self, module_id: int, val: float | None = None):
+        """Set or get input attenuation in dB"""
+        if val is not None:
+            code = int( round(val/RX_INP_ATT_STEP) )
+            if code > RX_INP_ATT_MAX_CODE:
+                code = RX_INP_ATT_MAX_CODE
+            if code < 0:
+                code = 0
+            self._write(module_id, RX_PARAM_ID.INP_ATT, code, 1)
+        else:
+            code = self._read(module_id, RX_PARAM_ID.INP_ATT, 1)
+        val = code * RX_INP_ATT_STEP
+        return val
+
+    def is_local(self, module_id: int):
+        """Get "local" status. If status is True, then the device is in "local" mode and inpt attenuation
+        is controlled by means of the onboard DIP switch SW2. In the "local" mode attempts to set input attenuation
+        will be ignored, but current value set by the DIP switch can be retrieved."""
+        return bool( self._read(module_id, RX_PARAM_ID.LOCAL, 1) )
