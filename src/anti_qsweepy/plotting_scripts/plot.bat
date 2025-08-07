@@ -1,0 +1,2 @@
+call %ANTI_QSWEEPY_VENV_CMD%
+python
