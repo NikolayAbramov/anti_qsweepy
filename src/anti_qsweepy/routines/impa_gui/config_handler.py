@@ -74,7 +74,7 @@ class ConfigHandler:
         self.ui_objects = ui_objects
         self.default_config_files = DefaultConfigFiles()
         app_name = self.ui_objects.app_name.replace(' ', '_')
-        platformdirs.user_data_path()
+        #platformdirs.user_data_path()
         base_pth = platformdirs.user_documents_path()
         pth = base_pth/app_name
         self.user_config_files = UserConfigFiles(path=pth,

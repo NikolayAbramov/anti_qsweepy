@@ -84,7 +84,7 @@ def spawn_plotting_script(dest,name, py = True):
 	script_name = os.path.split(name)[-1]
 	if py:
 		shutil.copyfile(source_dir+"\\"+name+'.py', dest+"\\"+script_name+'.py')
-		shutil.copyfile(source_dir+"\\plot.bat", dest+"\\plot.bat")
+		shutil.copyfile(module_dir+"\\plot.bat", dest+"\\plot.bat")
 		bat = open(dest+"\\plot.bat", 'a')
 		bat.write(' '+script_name+'.py')
 		bat.close()

@@ -1,12 +1,16 @@
 import warnings
-from enum import Enum
+from enum import Enum, auto
 
-from anti_qsweepy.drivers.rf_modules.definitions import *
-from anti_qsweepy.drivers.rf_modules.exceptions import *
+from .definitions import *
+from .exceptions import *
 
 class BACKENDS(Enum):
     WAVESHARE_USB_CAN_A = 1
     PYTHON_CAN_GS_USB = 2
+
+class DEVICE_TYPE(Enum):
+    TX = 0
+    RX = 1
 
 class Device:
     """ Base class for the CAN modules
@@ -62,6 +66,10 @@ class Device:
     def module_id(self, module_id: int):
         """Identify module by initiating its green LED blinking"""
         self._write(module_id, TX_PARAM_ID.MODULE_ID)
+
+    def device_type(self, module_id: int)->DEVICE_TYPE:
+        """Get module type"""
+        return DEVICE_TYPE(self._read(module_id, TX_PARAM_ID.DEVICE_TYPE, 1))
 
     def _validate_response(self, module_id: int, param_id: int, can_id_resp: int, data_resp: bytes) -> bytes|None:
         actual_param_id = data_resp[-1] >> 1
