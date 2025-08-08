@@ -36,10 +36,10 @@ class Device:
     def _open_backend(self):
         filters = {"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID}
         if self._backend_type is BACKENDS.WAVESHARE_USB_CAN_A:
-            from anti_qsweepy.drivers.rf_modules.waveshare_usb_can_a import WaveshareUSB_CAN_A
+            from .waveshare_usb_can_a import WaveshareUSB_CAN_A
             self.backend = WaveshareUSB_CAN_A(self._addr, 2000000, 500000)
         elif self._backend_type is BACKENDS.PYTHON_CAN_GS_USB:
-            from anti_qsweepy.drivers.rf_modules.python_can_backend import PythonCAN_GS_USB_Backend
+            from .python_can_backend import PythonCAN_GS_USB_Backend
             self.backend = PythonCAN_GS_USB_Backend(filters)
 
     def flush_rx_buffer(self, module_id: int|None = None, param_id: int|None = None) -> tuple[int,bytes|None]:
