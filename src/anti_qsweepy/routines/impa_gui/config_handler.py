@@ -10,6 +10,7 @@ import copy
 import os
 
 from . import data_structures as ds
+from ... import global_defs
 
 
 def config_obj_from_dict(o: Any, d: dict) -> None:
@@ -73,16 +74,16 @@ class ConfigHandler:
     def __init__(self, ui_objects: ds.UiObjects):
         self.ui_objects = ui_objects
         self.default_config_files = DefaultConfigFiles()
-        app_name = self.ui_objects.app_name.replace(' ', '_')
+        #app_name = self.ui_objects.app_name.replace(' ', '_')
         #platformdirs.user_data_path()
         base_pth = platformdirs.user_documents_path()
-        pth = base_pth/app_name
+        pth = base_pth/global_defs.project_name/'IMPA_GUI_conf'
         self.user_config_files = UserConfigFiles(path=pth,
                                                  config=pth/self.default_config_files.config.parts[-1],
                                                  bias_sweep=pth/self.default_config_files.bias_sweep.parts[-1],
                                                  optimization=pth/self.default_config_files.optimization.parts[-1])
         if not pth.exists():
-            pth.mkdir()
+            pth.mkdir(parents=True)
             self._create_initial_config(pth)
             shutil.copy(self.default_config_files.bias_sweep, pth)
             shutil.copy(self.default_config_files.optimization, pth)
@@ -101,8 +102,10 @@ class ConfigHandler:
         shutil.copy(self.default_config_files.config, pth)
         yaml_inst = yaml.YAML()
         config = yaml_inst.load(self.user_config_files.config)
+        # Default data path
         base_pth = platformdirs.user_documents_path()
-        config['data_dir'] = str(base_pth / 'IMPA_data')
+        pth = base_pth / global_defs.project_name
+        config['data_dir'] = str( pth / 'IMPA_GUI_data')
         yaml_inst.dump(config, self.user_config_files.config)
 
     def load_config(self) -> None:

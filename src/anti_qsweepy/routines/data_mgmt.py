@@ -4,6 +4,10 @@ import datetime
 import pathlib
 import tables
 from numpy.typing import ArrayLike
+from ruamel.yaml import YAML
+import platformdirs
+
+from .. import global_defs
 
 def default_save_path(root, time=True, name=None):
 
@@ -80,7 +84,13 @@ def data_file(path):
 
 def spawn_plotting_script(dest,name, py = True):
 	module_dir = os.path.dirname(os.path.abspath(__file__))
-	source_dir = os.path.split(module_dir)[0]+"\\plotting_scripts"
+	app_data_pth = platformdirs.user_data_path(global_defs.project_name, appauthor=False)
+	yaml = YAML(typ = 'safe')
+	with open(app_data_pth/global_defs.app_conf_file_name, 'r') as f:
+		app_data = yaml.load(f)
+	source_dir = app_data['user_plotting_scripts_pth']
+	#source_dir = os.path.split(module_dir)[0]+"\\plotting_scripts"
+
 	script_name = os.path.split(name)[-1]
 	if py:
 		shutil.copyfile(source_dir+"\\"+name+'.py', dest+"\\"+script_name+'.py')

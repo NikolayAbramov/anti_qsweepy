@@ -20,7 +20,7 @@ dependencies = [
   "scipy == 1.16.*",
   "tables == 3.10.*"
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 authors = [
   {name = "Nikolay Abramov", email = "n-abram-n@yandex.ru"},
 ]
@@ -47,7 +47,7 @@ classifiers = [
 Repository = "https://github.com/NikolayAbramov/anti_qsweepy"
 
 [project.scripts]
-anti_qsweepy_setup = "anti_qsweepy.routines.anti_qsweepy_setup:anti_qsweepy_setup"
+anti_qsweepy_setup = "anti_qsweepy.anti_qsweepy_setup:anti_qsweepy_setup"
 impa_gui = "anti_qsweepy.routines.impa_gui.main:impa_giu_main"
 
 #[project.gui-scripts]

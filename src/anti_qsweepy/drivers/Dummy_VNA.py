@@ -50,7 +50,7 @@ class NetworkAnalyzer:
 
     def measurement_type(self, val: str | None = None) -> str:
         if val is not None:
-            if val not in ["S11", "S21", "S22", "S12"]:
+            if val.upper() not in ["S11", "S21", "S22", "S12"]:
                 raise ValueError("Wrong measurement type {:s}!".format(val))
             self._m_type = val
         return self._m_type
