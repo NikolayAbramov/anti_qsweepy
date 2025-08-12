@@ -17,6 +17,6 @@ The IMPA web GIU can be launched with the following command:
 ```sh
 impa_gui
 ```
-After first launch the IMPA_GUI and IMPA_data directories are created in your local Documents folder.
-The IMPA_GUI contains yaml configuration files and the IMPA_data is the place where measurements results will be saved.
+After first launch the IMPA_GUI_conf and IMPA_GUI_data directories will be created in the \<Documents>/anti_qsweepy folder.
+The IMPA_GUI_conf contains yaml configuration files and the IMPA_GUI_data is the place where measurements results will be saved.
 Channels layout and used devices are specified in the main configuration file IMPA_GUI/config.yml.
