@@ -49,6 +49,7 @@ Repository = "https://github.com/NikolayAbramov/anti_qsweepy"
 [project.scripts]
 anti_qsweepy_setup = "anti_qsweepy.anti_qsweepy_setup:anti_qsweepy_setup"
 impa_gui = "anti_qsweepy.routines.impa_gui.main:impa_giu_main"
+restart_device = "anti_qsweepy.routines.device_restarter:device_restarter_main"
 
 #[project.gui-scripts]
 #impa-gui = "anti_qsweepy.routines.impa_gui.main:impa_giu_main"

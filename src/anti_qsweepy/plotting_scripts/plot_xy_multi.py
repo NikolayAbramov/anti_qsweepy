@@ -8,6 +8,7 @@ from matplotlib.pyplot import *
 f = tables.open_file('data.h5', mode='r')
 
 print(f)
+
 n_groups = 0
 for group in f.walk_groups():
     n_groups +=1
@@ -28,6 +29,10 @@ for group in f.walk_groups():
         xlabel(group.x.title)
         ylabel(group.y.title)
         legend()
+        attr_list = group._v_attrs._f_list("user")
+        print(group)
+        for attr_name in attr_list:
+            print(attr_name + ' = ', group._v_attrs[attr_name])
         group_idx += 1
     except tables.exceptions.NoSuchNodeError:
         print("Group {0} missing required nodes".format(group))

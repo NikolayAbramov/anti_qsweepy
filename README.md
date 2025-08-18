@@ -20,3 +20,15 @@ impa_gui
 After first launch the IMPA_GUI_conf and IMPA_GUI_data directories will be created in the \<Documents>/anti_qsweepy folder.
 The IMPA_GUI_conf contains yaml configuration files and the IMPA_GUI_data is the place where measurements results will be saved.
 Channels layout and used devices are specified in the main configuration file IMPA_GUI/config.yml.
+## Device restarter
+Device restarting utility
+Usage:
+```sh
+restart_device [part of device name]
+```
+Example:
+```sh
+restart_device COM5
+```
+All devices whose name contains the [part of device name] string will be restarted using pnputil.
+Run as administrator in order to avoid permission denied error.

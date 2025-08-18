@@ -50,6 +50,7 @@ def extendable_2d(path:str, column_coordinate:ArrayLike, dtype:type = complex,
 
 def add_extandable_1d(file: tables.File,
 						meas_name: str,
+						metadata: dict|None = None,
 						x_label: str = 'x',
 						y_label: str = 'y',
 						x_dtype: type = float,
@@ -72,6 +73,12 @@ def add_extandable_1d(file: tables.File,
 
 	x_array = file.create_earray(group, 'x', x_atom, (0,), x_label)
 	y_array = file.create_earray(group, 'y', y_atom, (0,), y_label)
+
+	# Set metadata for the group
+	if metadata is not None:
+		for key in metadata.keys():
+			group._v_attrs.__setattr__(str(key), metadata[key])
+
 	return x_array, y_array
 
 
