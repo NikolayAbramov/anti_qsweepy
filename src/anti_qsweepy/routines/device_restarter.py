@@ -33,7 +33,6 @@ def device_restarter_main():
                     cmd = 'pnputil /restart-device ' + f'"{device.DeviceID}"'
                     print(cmd)
                     subprocess.run(cmd)
-                    break
     else:
         print("Device restarting utility\n\n"
               "Usage:\n"

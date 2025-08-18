@@ -21,7 +21,7 @@ After first launch the IMPA_GUI_conf and IMPA_GUI_data directories will be creat
 The IMPA_GUI_conf contains yaml configuration files and the IMPA_GUI_data is the place where measurements results will be saved.
 Channels layout and used devices are specified in the main configuration file IMPA_GUI/config.yml.
 ## Device restarter
-Device restarting utility
+Device restarting utility.\
 Usage:
 ```sh
 restart_device [part of device name]
