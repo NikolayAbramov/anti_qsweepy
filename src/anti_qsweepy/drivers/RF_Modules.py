@@ -1,5 +1,6 @@
 from .rf_modules.definitions import *
 from .rf_modules.device import Device
+from .rf_modules.device import BACKENDS
 
 class TX(Device):
     """ Driver for the upconverting modules controlled via CAN
