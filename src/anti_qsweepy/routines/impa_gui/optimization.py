@@ -60,7 +60,7 @@ class Optimization:
     def start(self):
         # Tuner settings
         bias_source = self.bias_source.dev_inst
-        bias_source.channel(self.pump_source.chan)
+        bias_source.channel(self.bias_source.chan)
         pump_source = self.pump_source.dev_inst
         pump_source.channel(self.pump_source.chan)
         vna = self.vna.dev_inst
