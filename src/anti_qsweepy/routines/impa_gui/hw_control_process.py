@@ -61,18 +61,37 @@ class HWCommandProcessor:
                         address: str,
                         ch: int,
                         ui_ch: int) -> tuple[bool,list[int]]:
+        """Opens connection to a physical device if needed
+
+        Args:
+            device_dict (dict[int, PhyDevice]): Dictionary of devices of a particular device class like VNAs or
+                                                bias sources bind to an integer UI channel ID.
+            driver_name (str): Device driver name from anti_qsweepy.drivers.
+            class_name (str): Class name within the selected driver module.
+            address (str): The device address.
+            ch (int): The physical channel of a multichannel device. Always 0 if a device has single channel.
+            ui_ch (int): The associated UI channel ID where the device will be used.
+
+        Returns:
+            tuple[bool,list[int]]: Status and a list of affected UI channels
+        """
         existing_phy_device = None
         existing_dev_inst = None
         affected_ui_ch = [ui_ch]
         similar_ui_ch = [ui_ch]
+
         for existing_ui_ch in device_dict.keys():
             phy_dev = device_dict[existing_ui_ch]
-            if phy_dev.driver_name == driver_name:
+            # If the same device is already used
+            if phy_dev.driver_name == driver_name and phy_dev.addr == address:
                 affected_ui_ch += [existing_ui_ch]
+                existing_dev_inst = phy_dev.dev_inst
+                # If the same channel of the same device is already used
                 if phy_dev.chan == ch:
                     similar_ui_ch += [existing_ui_ch]
                     existing_phy_device = phy_dev
-                existing_dev_inst = phy_dev.dev_inst
+
+        # If the same channel of the same device is already used
         if existing_phy_device is not None:
             if existing_phy_device.dev_inst is None:
                 existing_phy_device.dev_inst = self._connect_instr(driver_name, class_name, address, ui_ch)
@@ -89,6 +108,7 @@ class HWCommandProcessor:
             if ui_ch not in device_dict.keys():
                 phy_device = PhyDevice(driver_name=driver_name,
                                         class_name=class_name,
+                                        addr = address,
                                         dev_inst=existing_dev_inst,
                                         chan=ch,
                                         similar_ui_ch=similar_ui_ch)

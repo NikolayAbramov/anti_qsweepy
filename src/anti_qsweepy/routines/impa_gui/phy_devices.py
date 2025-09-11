@@ -11,12 +11,14 @@ class PhyDevice:
     Attributes:
         driver_name (str): Device driver name within the anti_qsweepy.drivers module
         class_name (str): Device class name within the driver
+        addr (str): The device address
         chan (int): Associated physical device channel
         dev_inst: Device class instance
         similar_ui_ch (list): List of UI channels sharing the same device with the
                               same driver_name and associated physical channel"""
     driver_name: str
     class_name: str
+    addr: str
     chan: int
     dev_inst: Any
     similar_ui_ch: list[int]

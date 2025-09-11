@@ -60,7 +60,7 @@ class UiGenerator:
                     ui.button('Save configuration', on_click=self.ch.save_config) \
                         .classes('text-xs mt-1 ml-1') \
                         .tooltip('')
-
+            # Channel tabs
             for ch_id, tab in enumerate(self.ui_objects.channel_tabs):
                 with ui.tab_panel(tab.tab):
                     self._fill_channel_tab(ch_id)
@@ -247,6 +247,7 @@ class UiGenerator:
                         .classes('ml-2')\
                         .bind_value(chan.optimization.target_frequency_mode, 'value')\
                         .bind_enabled(chan.optimization.target_frequency_mode, 'enabled')
+                    chan.optimization.target_frequency_mode_change()
                 with ui.row(wrap=False):
                     self._create_parameter_input(chan.optimization.target_frequency_start, 'w-20')
                     self._create_parameter_input(chan.optimization.target_frequency_stop, 'w-20')

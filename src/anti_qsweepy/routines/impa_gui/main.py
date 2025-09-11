@@ -1,6 +1,7 @@
 from nicegui import ui
 import multiprocessing as mp
 import subprocess
+import os
 
 from .ui_generator import UiGenerator
 from .ui_callbacks import UiCallbacks
@@ -11,7 +12,9 @@ from . import data_structures as ds
 
 def impa_giu_main():
     # Set environmental variable to enable simultaneous access to HDF5 data files
-    subprocess.run("setx HDF5_USE_FILE_LOCKING \"FALSE\"")
+    hdf5_var = os.environ.get("HDF5_USE_FILE_LOCKING")
+    if hdf5_var is None or hdf5_var != "FALSE":
+        subprocess.run("setx HDF5_USE_FILE_LOCKING \"FALSE\"")
 
     q_command = mp.Queue(maxsize=100)
     q_feedback = mp.Queue(maxsize=100)
