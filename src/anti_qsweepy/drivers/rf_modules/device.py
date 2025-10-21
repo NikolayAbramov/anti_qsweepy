@@ -168,8 +168,6 @@ class Device:
                         if self._logger is not None:
                             self._logger.warning(f'RxBufferOverrun exception occurred during write to module {module_id}!')
                 else:
-                    if self._logger is not None:
-                        self._logger.error(f"try_id = {try_id}", exc_info=True)
                     raise NoResponse(module_id)
                 break
             except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
