@@ -1,12 +1,13 @@
 import warnings
+import logging
+import platformdirs
 from enum import Enum, auto
 
-from .python_can_backend import PythonCAN_GS_USB_Backend
-from .waveshare_usb_can_a import WaveshareUSB_CAN_A
-from .backend import BACKENDS
+from .backend import BACKENDS, Backend
 
 from .definitions import *
 from .exceptions import *
+from ... import global_defs
 
 class DEVICE_TYPE(Enum):
     TX = 0
@@ -25,11 +26,12 @@ class Device:
 
     Otherwise, driver will be kept locked and the new object will not work.
     """
-    def __init__(self, addr:str |PythonCAN_GS_USB_Backend | WaveshareUSB_CAN_A ,
-                 backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A, channels:list[int]|int = None):
+    def __init__(self, addr:str |Backend ,
+                 backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A, channels:list[int]|int = None,
+                 log:bool = True):
         self._addr:str = ""
         self._backend_type: BACKENDS = backend
-        self.backend: PythonCAN_GS_USB_Backend | WaveshareUSB_CAN_A
+        self.backend: Backend
         self.timeout: float = 1
         self._n_try: int = 3
         # Active channel
@@ -42,12 +44,30 @@ class Device:
         if type(addr) is str:
             self._addr:str = addr
             self._open_backend()
-        elif (type(addr) is PythonCAN_GS_USB_Backend) or (type(addr) is WaveshareUSB_CAN_A) :
+        elif Backend in type(addr).__mro__:
             self.addr = addr.addr
             self.backend = addr
             self._backend_type = addr.type
         else:
             raise TypeError
+
+        # Logging
+        self._log = log
+        self._logger = None
+        if self._log:
+            app_data_pth = platformdirs.user_data_path(global_defs.project_name, appauthor=False)
+            if not app_data_pth.exists():
+                app_data_pth.mkdir(parents=True)
+
+            self._logger = logging.getLogger(__name__)
+            self._logger.setLevel(logging.INFO)
+
+            handler = logging.FileHandler(app_data_pth / "RF_modules.log", mode='a')
+            formatter = logging.Formatter("%(name)s %(asctime)s %(levelname)s %(message)s")
+            handler.setFormatter(formatter)
+            self._logger.addHandler(handler)
+            self._logger.info("Initialized")
+
         self._flush_rx_buffer()
 
     def channel(self, ch:int|None = None)->int:
@@ -104,7 +124,7 @@ class Device:
         actual_param_id = data_resp[-1] >> 1
         actual_module_id = can_id_resp - CAN_RESPONSE_BASE_ID
         if actual_param_id != param_id or actual_module_id != module_id:
-            msg_flushed, data_recovered = self.flush_rx_buffer(module_id, param_id)
+            msg_flushed, data_recovered = self._flush_rx_buffer(module_id, param_id)
             if data_recovered is None:
                 if msg_flushed > 0:
                     raise RxBufferOverrun
@@ -145,19 +165,29 @@ class Device:
                         self._validate_response(module_id, param_id, can_id_resp, data_resp)
                     except RxBufferOverrun:
                         warnings.warn('RxBufferOverrun exception occurred during write to module {0}!'.format(module_id))
+                        if self._logger is not None:
+                            self._logger.warning(f'RxBufferOverrun exception occurred during write to module {module_id}!')
                 else:
+                    if self._logger is not None:
+                        self._logger.error(f"try_id = {try_id}", exc_info=True)
                     raise NoResponse(module_id)
                 break
             except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
+                if self._logger is not None:
+                    self._logger.error(f"try_id = {try_id}",exc_info=True)
                 if try_id < self._n_try-1:
                     pass
                 else:
                     raise exc
             except BackendRxFault as exc:
+                if self._logger is not None:
+                    self._logger.error(f"try_id = {try_id}",exc_info=True)
                 if try_id < self._n_try - 1:
+                    if self._logger is not None:
+                        self._logger.info("Backend restart")
                     self.backend.close()
                     self._open_backend()
-                    self.flush_rx_buffer()
+                    self._flush_rx_buffer()
                 else:
                     raise exc
 
@@ -178,15 +208,21 @@ class Device:
                 else:
                     raise NoResponse(module_id)
             except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
+                if self._logger is not None:
+                    self._logger.error(f"try_id = {try_id}",exc_info=True)
                 if try_id < self._n_try-1:
                     pass
                 else:
                     raise exc
             except BackendRxFault as exc:
+                if self._logger is not None:
+                    self._logger.error(f"try_id = {try_id}",exc_info=True)
                 if try_id < self._n_try - 1:
+                    if self._logger is not None:
+                        self._logger.info("Backend restart")
                     self.backend.close()
                     self._open_backend()
-                    self.flush_rx_buffer()
+                    self._flush_rx_buffer()
                 else:
                     raise exc
 

@@ -65,7 +65,7 @@ class SERIAL_DATA_TYPE(IntEnum):
 SERIAL_DATA_SIZE = 20
 
 class WaveshareUSB_CAN_A(Backend):
-    def __init__(self, com_port: str, baudrate: int, can_speed: int, addr: str,
+    def __init__(self, com_port: str, baudrate: int, can_speed: int,
                  frame_size: CAN_FRAME_SIZE = CAN_FRAME_SIZE.STANDARD, mode: CANUSB_MODE = CANUSB_MODE.NORMAL,
                  timeout: float = 1):
         super().__init__(com_port)
@@ -143,8 +143,6 @@ class WaveshareUSB_CAN_A(Backend):
                 raise BackendRxFault
             can_id = int.from_bytes( resp[5:9], 'little' )
             length = resp[9]
-            #print(resp)
-            #print(length)
             data = resp[10:10+length]
             if len(data) == 0:
                 print (resp)
