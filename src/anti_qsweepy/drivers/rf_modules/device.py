@@ -63,7 +63,7 @@ class Device:
             self._logger.setLevel(logging.INFO)
 
             handler = logging.FileHandler(app_data_pth / "RF_modules.log", mode='a')
-            formatter = logging.Formatter("%(name)s %(asctime)s %(levelname)s %(message)s")
+            formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
             handler.setFormatter(formatter)
             self._logger.addHandler(handler)
             self._logger.info("Initialized")
