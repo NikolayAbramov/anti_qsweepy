@@ -1,7 +1,10 @@
 import can
+from.backend import Backend, BACKENDS
 
-class PythonCAN_GS_USB_Backend:
-    def __init__(self, filters:dict):
+class PythonCAN_GS_USB_Backend(Backend):
+    def __init__(self, filters: dict):
+        super().__init__("")
+        self.type = BACKENDS.PYTHON_CAN_GS_USB
         self.timeout = 1
         filters['extended'] = False
         filters = [filters,]

@@ -1,12 +1,13 @@
 import warnings
+import logging
+import platformdirs
 from enum import Enum, auto
+
+from .backend import BACKENDS, Backend
 
 from .definitions import *
 from .exceptions import *
-
-class BACKENDS(Enum):
-    WAVESHARE_USB_CAN_A = 1
-    PYTHON_CAN_GS_USB = 2
+from ... import global_defs
 
 class DEVICE_TYPE(Enum):
     TX = 0
@@ -25,24 +26,72 @@ class Device:
 
     Otherwise, driver will be kept locked and the new object will not work.
     """
-    def __init__(self, addr:str, backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A):
-        self._addr = addr
-        self._backend_type = backend
-        self.timeout = 1
-        self.n_try = 3
-        self._open_backend()
-        self.flush_rx_buffer()
+    def __init__(self, addr:str |Backend ,
+                 backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A, channels:list[int]|int = None,
+                 log:bool = True):
+        self._addr:str = ""
+        self._backend_type: BACKENDS = backend
+        self.backend: Backend
+        self.timeout: float = 1
+        self._n_try: int = 3
+        # Active channel
+        self._ch = 0
+        # Valid channels
+        self._channels: list[int] | None = None
+        if channels is not None:
+            self._channels = [channels]
+
+        if type(addr) is str:
+            self._addr:str = addr
+            self._open_backend()
+        elif Backend in type(addr).__mro__:
+            self.addr = addr.addr
+            self.backend = addr
+            self._backend_type = addr.type
+        else:
+            raise TypeError
+
+        # Logging
+        self._log = log
+        self._logger = None
+        if self._log:
+            app_data_pth = platformdirs.user_data_path(global_defs.project_name, appauthor=False)
+            if not app_data_pth.exists():
+                app_data_pth.mkdir(parents=True)
+
+            self._logger = logging.getLogger(__name__)
+            self._logger.setLevel(logging.INFO)
+
+            handler = logging.FileHandler(app_data_pth / "RF_modules.log", mode='a')
+            formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+            handler.setFormatter(formatter)
+            self._logger.addHandler(handler)
+            self._logger.info("Initialized")
+
+        self._flush_rx_buffer()
+
+    def channel(self, ch:int|None = None)->int:
+        """Set active channel"""
+        if ch is not None:
+            if self._channels is not None:
+                if ch in self._channels:
+                    self._ch = ch
+                else:
+                    raise ValueError(f"Channel index {ch} is invalid")
+            else:
+                self._ch = ch
+        return self._ch
 
     def _open_backend(self):
-        filters = {"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID}
         if self._backend_type is BACKENDS.WAVESHARE_USB_CAN_A:
-            from .waveshare_usb_can_a import WaveshareUSB_CAN_A
-            self.backend = WaveshareUSB_CAN_A(self._addr, 2000000, 500000)
+           from .waveshare_usb_can_a import WaveshareUSB_CAN_A
+           self.backend = WaveshareUSB_CAN_A(self._addr, 2000000, 500000)
         elif self._backend_type is BACKENDS.PYTHON_CAN_GS_USB:
-            from .python_can_backend import PythonCAN_GS_USB_Backend
-            self.backend = PythonCAN_GS_USB_Backend(filters)
+           filters = {"can_id": CAN_RESPONSE_BASE_ID, "can_mask": CAN_RESPONSE_BASE_ID}
+           from .python_can_backend import PythonCAN_GS_USB_Backend
+           self.backend = PythonCAN_GS_USB_Backend(filters)
 
-    def flush_rx_buffer(self, module_id: int|None = None, param_id: int|None = None) -> tuple[int,bytes|None]:
+    def _flush_rx_buffer(self, module_id: int|None = None, param_id: int|None = None) -> tuple[int,bytes|None]:
         """Flush RX buffer of the adapter and try to find lost message if corresponding parameters of the function are
         provided"""
         msg_flushed = 0
@@ -63,19 +112,19 @@ class Device:
         self.backend.timeout = self.timeout
         return msg_flushed, data_recovered
 
-    def module_id(self, module_id: int):
+    def module_id(self):
         """Identify module by initiating its green LED blinking"""
-        self._write(module_id, TX_PARAM_ID.MODULE_ID)
+        self._write(self._ch, TX_PARAM_ID.MODULE_ID)
 
-    def device_type(self, module_id: int)->DEVICE_TYPE:
+    def device_type(self)->DEVICE_TYPE:
         """Get module type"""
-        return DEVICE_TYPE(self._read(module_id, TX_PARAM_ID.DEVICE_TYPE, 1))
+        return DEVICE_TYPE(self._read(self._ch, TX_PARAM_ID.DEVICE_TYPE, 1))
 
     def _validate_response(self, module_id: int, param_id: int, can_id_resp: int, data_resp: bytes) -> bytes|None:
         actual_param_id = data_resp[-1] >> 1
         actual_module_id = can_id_resp - CAN_RESPONSE_BASE_ID
         if actual_param_id != param_id or actual_module_id != module_id:
-            msg_flushed, data_recovered = self.flush_rx_buffer(module_id, param_id)
+            msg_flushed, data_recovered = self._flush_rx_buffer(module_id, param_id)
             if data_recovered is None:
                 if msg_flushed > 0:
                     raise RxBufferOverrun
@@ -102,7 +151,7 @@ class Device:
         return module_type
 
     def _write(self, module_id: int, param_id: IntEnum, data: int | None = None, size: int | None = None) -> None:
-        for try_id in range(self.n_try):
+        for try_id in range(self._n_try):
             try:
                 read = 0
                 if data is not None:
@@ -116,24 +165,32 @@ class Device:
                         self._validate_response(module_id, param_id, can_id_resp, data_resp)
                     except RxBufferOverrun:
                         warnings.warn('RxBufferOverrun exception occurred during write to module {0}!'.format(module_id))
+                        if self._logger is not None:
+                            self._logger.warning(f'RxBufferOverrun exception occurred during write to module {module_id}!')
                 else:
                     raise NoResponse(module_id)
                 break
             except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
-                if try_id < self.n_try-1:
+                if self._logger is not None:
+                    self._logger.error(f"try_id = {try_id}",exc_info=True)
+                if try_id < self._n_try-1:
                     pass
                 else:
                     raise exc
             except BackendRxFault as exc:
-                if try_id < self.n_try - 1:
+                if self._logger is not None:
+                    self._logger.error(f"try_id = {try_id}",exc_info=True)
+                if try_id < self._n_try - 1:
+                    if self._logger is not None:
+                        self._logger.info("Backend restart")
                     self.backend.close()
                     self._open_backend()
-                    self.flush_rx_buffer()
+                    self._flush_rx_buffer()
                 else:
                     raise exc
 
     def _read(self, module_id: int, param_id: IntEnum, size: int) -> int:
-        for try_id in range(self.n_try):
+        for try_id in range(self._n_try):
             try:
                 read = 1
                 data = ((int(param_id) << 1) + read).to_bytes(1)
@@ -149,15 +206,21 @@ class Device:
                 else:
                     raise NoResponse(module_id)
             except (NoResponse, BadResponseModuleID, BadResponseParamID) as exc:
-                if try_id < self.n_try-1:
+                if self._logger is not None:
+                    self._logger.error(f"try_id = {try_id}",exc_info=True)
+                if try_id < self._n_try-1:
                     pass
                 else:
                     raise exc
             except BackendRxFault as exc:
-                if try_id < self.n_try - 1:
+                if self._logger is not None:
+                    self._logger.error(f"try_id = {try_id}",exc_info=True)
+                if try_id < self._n_try - 1:
+                    if self._logger is not None:
+                        self._logger.info("Backend restart")
                     self.backend.close()
                     self._open_backend()
-                    self.flush_rx_buffer()
+                    self._flush_rx_buffer()
                 else:
                     raise exc
 
