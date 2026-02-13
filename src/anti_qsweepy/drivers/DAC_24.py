@@ -16,6 +16,7 @@ class CurrentSource(VisaInstrument):
     """Current source with differential outputs"""
     def __init__(self, *args):
         VisaInstrument.__init__(self, *args, term_chars='\n')
+        self.instr.timeout = 30
         self.always_query = True
         self.Vmax = 4.094
         self.Vmin = -4.096

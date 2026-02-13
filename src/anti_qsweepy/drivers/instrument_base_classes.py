@@ -26,7 +26,7 @@ class VisaInstrument(Instrument):
         self.address = address
         self.term_chars = term_chars
         self.always_query = False
-        self.n_trys = 5
+        self.n_trys = 10
         self.instr = None
         self._open_instrument()
 
