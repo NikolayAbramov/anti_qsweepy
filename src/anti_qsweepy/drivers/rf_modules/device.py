@@ -29,7 +29,7 @@ class Device:
     def __init__(self, addr:str |Backend ,
                  backend:BACKENDS = BACKENDS.WAVESHARE_USB_CAN_A, channels:list[int]|int = None,
                  log:bool = True):
-        self._addr:str = ""
+
         self._backend_type: BACKENDS = backend
         self.backend: Backend
         self.timeout: float = 1
@@ -41,11 +41,12 @@ class Device:
         if channels is not None:
             self._channels = [channels]
 
+        self._addr: str = ""
         if type(addr) is str:
             self._addr:str = addr
             self._open_backend()
         elif Backend in type(addr).__mro__:
-            self.addr = addr.addr
+            self._addr = addr.addr
             self.backend = addr
             self._backend_type = addr.type
         else:

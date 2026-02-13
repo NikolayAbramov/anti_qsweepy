@@ -1,10 +1,6 @@
-from debugpy.launcher import channel
-
 from .rf_modules.definitions import *
 from .rf_modules.device import Device
 from .rf_modules.device import BACKENDS
-from .rf_modules.python_can_backend import PythonCAN_GS_USB_Backend
-from .rf_modules.waveshare_usb_can_a import WaveshareUSB_CAN_A
 
 class RF_Modules(Device):
     """Compound device for RX an TX modules"""
