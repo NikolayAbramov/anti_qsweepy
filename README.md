@@ -1,9 +1,9 @@
 ## Anti QSWEEPY
 A simple measurement automation tool.
 
-To install run this:
+To install run this from the root directory of the project:
 ```sh
-pip install anti_qsweepy
+pip install -e .
 ```
 Then run the following setup command: 
 ```sh
