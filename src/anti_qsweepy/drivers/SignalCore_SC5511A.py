@@ -1,13 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Added upon by Bridgette McAllister, SignalCore 7/8/2022
----
-Created on Fri Mar 19 14:11:31 2021
-Adapted from Chao Zhou
----
-A simple driver for SignalCore SC5511A, transferred from the one written by Erick Brindock
-"""
-
 import ctypes
 from typing import Any
 import numpy as np
@@ -17,7 +7,7 @@ from . import exceptions
 
 
 class Generator(Instrument):
-    """An abstract RF generator class for SignalCore SC5511A."""
+    """RF generator class for SignalCore SC5511A."""
     def __init__(self, serial_number: str,
                  dll_path: str = 'C:\\Program Files\\SignalCore\\SC5511A\\api\\c\\x64\\sc5511a.dll', debug=False,
                  **kwargs: Any):
