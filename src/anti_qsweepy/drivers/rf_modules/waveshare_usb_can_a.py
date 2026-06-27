@@ -1,6 +1,7 @@
 import serial
 from enum import IntEnum
-from anti_qsweepy.drivers.rf_modules.exceptions import *
+from .exceptions import *
+from .backend import Backend, BACKENDS
 
 class CAN_SPEED(IntEnum):
     SPEED_1000000 = 1000000
@@ -63,14 +64,12 @@ class SERIAL_DATA_TYPE(IntEnum):
 
 SERIAL_DATA_SIZE = 20
 
-
-class WaveshareUSB_CAN_A:
-    def __init__(self, com_port:str,
-                 baudrate:int, can_speed: int,
-                 frame_size: CAN_FRAME_SIZE = CAN_FRAME_SIZE.STANDARD,
-                 mode: CANUSB_MODE = CANUSB_MODE.NORMAL,
+class WaveshareUSB_CAN_A(Backend):
+    def __init__(self, com_port: str, baudrate: int, can_speed: int,
+                 frame_size: CAN_FRAME_SIZE = CAN_FRAME_SIZE.STANDARD, mode: CANUSB_MODE = CANUSB_MODE.NORMAL,
                  timeout: float = 1):
-
+        super().__init__(com_port)
+        self.type = BACKENDS.WAVESHARE_USB_CAN_A
         self.frame_size = frame_size
         if baudrate % can_speed:
             raise Exception("COM baud rate must be divisible by CAN speed")
@@ -144,8 +143,6 @@ class WaveshareUSB_CAN_A:
                 raise BackendRxFault
             can_id = int.from_bytes( resp[5:9], 'little' )
             length = resp[9]
-            #print(resp)
-            #print(length)
             data = resp[10:10+length]
             if len(data) == 0:
                 print (resp)

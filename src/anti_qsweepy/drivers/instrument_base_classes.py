@@ -26,7 +26,7 @@ class VisaInstrument(Instrument):
         self.address = address
         self.term_chars = term_chars
         self.always_query = False
-        self.n_trys = 5
+        self.n_trys = 10
         self.instr = None
         self._open_instrument()
 
@@ -81,13 +81,15 @@ class VisaInstrument(Instrument):
     def query(self, cmd: str) -> str:
         return self._safe_visa_transfer('query', cmd)
 
-    # Uneversal parameter access. If no val specified it will query and return or write instead
-    def write_or_query(self, message, val=None, fmt_str="{:d}"):
+    def write_or_query(self, message, val=None, fmt_str="{:d}", check = False):
+        """Universal parameter access. If no val specified it will query and return or write instead"""
         if val is not None:
             if self.always_query:
                 val = self.instr.query(message + " " + fmt_str.format(val))
             else:
                 self.instr.write(message + " " + fmt_str.format(val))
+                if check:
+                    val = self.instr.query(message + "?")
             return val
         else:
             return self.instr.query(message + "?")
